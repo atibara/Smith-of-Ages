@@ -1,4 +1,5 @@
 import { Arrow } from './Arrow.js';
+import { LANE_Y } from '../Constants.js';
 
 export class EnemyArcher {
   constructor(x, yOffset, lane = 1) {
@@ -17,6 +18,7 @@ export class EnemyArcher {
     this.attackDelay = 1800; // Slower attack rate
     this.lastAttack = 0;
     this.range = 300;
+    this.lastLaneSwitch = 0;
   }
 
   takeDamage(amount) {
@@ -29,40 +31,79 @@ export class EnemyArcher {
     let canMove = true;
     const padding = 20;
 
-    // 1. Check for player units in the SAME LANE in range
-    let targetX = -1;
+    // 1. Find the absolute closest player unit horizontally (any lane)
+    let closestPlayer = null;
+    let minXDist = Infinity;
+
     for (const playerUnit of allPlayers) {
-      if (playerUnit.lane !== this.lane) continue;
-      const dist = this.x - playerUnit.x;
-      // Enemy is on the right, player is on the left
+      const dist = this.x - playerUnit.x; // Moving left, player is on the left
       if (dist > 0 && dist < this.range) {
-        targetX = playerUnit.x;
-        canMove = false;
-        break;
+        if (dist < minXDist) {
+          minXDist = dist;
+          closestPlayer = playerUnit;
+        }
       }
     }
 
-    // 2. Check for player base (any lane can hit base)
-    if (canMove && playerBase && this.x - playerBase.x < this.range) {
+    // 2. Engagement Logic
+    let targetX = -1;
+    let targetLane = this.lane;
+    let targetY = this.y;
+
+    if (closestPlayer) {
+      targetX = closestPlayer.x;
+      targetLane = closestPlayer.lane;
+      targetY = LANE_Y[targetLane];
+      canMove = false;
+    } else if (playerBase && this.x - playerBase.x < this.range) {
       targetX = playerBase.x;
+      targetLane = this.lane;
+      targetY = this.y;
       canMove = false;
     }
 
     if (targetX !== -1) {
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
-        // Fire an arrow to the left in the SAME LANE
-        const newArrow = new Arrow(this.x - 10, this.y, this.attackDamage, 'enemy', this.lane);
+        // Fire an arrow at the TARGET'S lane and Y
+        const newArrow = new Arrow(this.x - 10, targetY, this.attackDamage, 'enemy', targetLane);
         arrows.push(newArrow);
         this.lastAttack = now;
       }
     } else {
       // 3. Normal movement collision with other enemies in the SAME LANE
+      let blockedByTeammate = false;
       for (const other of allEnemies) {
         if (other === this || other.lane !== this.lane) continue;
         if (other.x < this.x && this.x - other.x < this.width + padding) {
           canMove = false;
+          blockedByTeammate = true;
           break;
+        }
+      }
+
+      // 4. Dynamic Lane Switching if blocked by a teammate
+      if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 500) {
+        const candidateLanes = [];
+        if (this.lane > 0) candidateLanes.push(this.lane - 1);
+        if (this.lane < LANE_Y.length - 1) candidateLanes.push(this.lane + 1);
+
+        for (const nextLane of candidateLanes) {
+          let laneClear = true;
+          for (const other of allEnemies) {
+            if (other.lane === nextLane && Math.abs(other.x - this.x) < this.width + padding) {
+              laneClear = false;
+              break;
+            }
+          }
+
+          if (laneClear) {
+            this.lane = nextLane;
+            this.y = LANE_Y[nextLane];
+            this.lastLaneSwitch = Date.now();
+            canMove = true;
+            break;
+          }
         }
       }
 

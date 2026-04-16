@@ -9,12 +9,12 @@ import { Forest } from './entities/Forest.js';
 import { Armory } from './entities/Armory.js';
 import { UpperBase } from './entities/UpperBase.js';
 import { EnemyBase } from './entities/EnemyBase.js';
+import { UPPER_WORLD_HEIGHT, LANE_Y, GRID_SIZE } from './Constants.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 let width, height;
-const UPPER_WORLD_HEIGHT = 150;
 const player = new Player(400, 300);
 const smithy = new Smithy(400, 300);
 const mine = new IronMine(0, 0);
@@ -27,7 +27,6 @@ const archers = [];
 const enemies = [];
 const arrows = [];
 const camera = { x: 0, y: 0 };
-const GRID_SIZE = 100;
 
 // Enemy Spawning
 let lastEnemySpawn = Date.now();
@@ -35,7 +34,6 @@ const ENEMY_SPAWN_INTERVAL_MAX = 8000;
 const ENEMY_SPAWN_INTERVAL_MIN = 2000;
 let currentSpawnInterval = ENEMY_SPAWN_INTERVAL_MAX;
 
-const LANE_Y = [40, 75, 110]; // Y-coords for lanes 0, 1, 2
 let nextSoldierLane = 0;
 let nextEnemyLane = 0;
 
@@ -103,20 +101,40 @@ window.addEventListener('keydown', (e) => {
       const swordIndex = player.inventory.indexOf('sword');
       const bowIndex = player.inventory.indexOf('bow');
       
-      if (swordIndex !== -1) {
-        player.inventory.splice(swordIndex, 1);
-        const lane = nextSoldierLane;
-        const newSoldier = new Soldier(LANE_Y[lane], lane);
-        newSoldier.x = upperBase.x; 
-        soldiers.push(newSoldier);
-        nextSoldierLane = (nextSoldierLane + 1) % LANE_Y.length;
-      } else if (bowIndex !== -1) {
-        player.inventory.splice(bowIndex, 1);
-        const lane = nextSoldierLane;
-        const newArcher = new Archer(LANE_Y[lane], lane);
-        newArcher.x = upperBase.x; 
-        archers.push(newArcher);
-        nextSoldierLane = (nextSoldierLane + 1) % LANE_Y.length;
+      if (swordIndex !== -1 || bowIndex !== -1) {
+        // Tactic: Find which lane has enemies to prioritize it
+        let targetLane = -1;
+        const allEnemies = enemies.concat(); // Enemy class + EnemyArcher class check
+        if (allEnemies.length > 0) {
+          const laneCounts = [0, 0, 0];
+          allEnemies.forEach(e => laneCounts[e.lane]++);
+          let maxCount = 0;
+          for (let l = 0; l < 3; l++) {
+            if (laneCounts[l] > maxCount) {
+              maxCount = laneCounts[l];
+              targetLane = l;
+            }
+          }
+        }
+        
+        const spawnLane = targetLane !== -1 ? targetLane : nextSoldierLane;
+        
+        if (swordIndex !== -1) {
+          player.inventory.splice(swordIndex, 1);
+          const newSoldier = new Soldier(LANE_Y[spawnLane], spawnLane);
+          newSoldier.x = upperBase.x; 
+          soldiers.push(newSoldier);
+        } else if (bowIndex !== -1) {
+          player.inventory.splice(bowIndex, 1);
+          const newArcher = new Archer(LANE_Y[spawnLane], spawnLane);
+          newArcher.x = upperBase.x; 
+          archers.push(newArcher);
+        }
+
+        // If we used the target lane, we don't increment the cycle
+        if (targetLane === -1) {
+          nextSoldierLane = (nextSoldierLane + 1) % LANE_Y.length;
+        }
       }
     }
   }
@@ -179,26 +197,43 @@ function update() {
 
   // Spawning enemies from the enemy base if it's not destroyed
   if (enemyBase.health > 0 && Date.now() - lastEnemySpawn > currentSpawnInterval) {
-    const lane = nextEnemyLane;
+    let targetLane = -1;
+    const allPlayers = soldiers.concat(archers);
+    if (allPlayers.length > 0) {
+      const laneCounts = [0, 0, 0];
+      allPlayers.forEach(p => laneCounts[p.lane]++);
+      let maxCount = 0;
+      for (let l = 0; l < 3; l++) {
+        if (laneCounts[l] > maxCount) {
+          maxCount = laneCounts[l];
+          targetLane = l;
+        }
+      }
+    }
+
+    const lane = targetLane !== -1 ? targetLane : nextEnemyLane;
     // 75% Melee Enemy, 25% Archer Enemy
     if (Math.random() < 0.75) {
       enemies.push(new Enemy(enemyBase.x, LANE_Y[lane], lane));
     } else {
       enemies.push(new EnemyArcher(enemyBase.x, LANE_Y[lane], lane));
     }
-    nextEnemyLane = (nextEnemyLane + 1) % LANE_Y.length;
+
+    if (targetLane === -1) {
+      nextEnemyLane = (nextEnemyLane + 1) % LANE_Y.length;
+    }
     lastEnemySpawn = Date.now();
   }
 
   // Update soldiers
   for (let i = soldiers.length - 1; i >= 0; i--) {
-    soldiers[i].update(soldiers, enemies, enemyBase);
+    soldiers[i].update(soldiers, enemies, enemyBase, archers);
     if (soldiers[i].health <= 0) soldiers.splice(i, 1);
   }
 
   // Update archers
   for (let i = archers.length - 1; i >= 0; i--) {
-    archers[i].update(archers, enemies, enemyBase, arrows);
+    archers[i].update(archers, enemies, enemyBase, arrows, soldiers);
     if (archers[i].health <= 0) archers.splice(i, 1);
   }
 

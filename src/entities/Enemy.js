@@ -1,3 +1,5 @@
+import { LANE_Y } from '../Constants.js';
+
 export class Enemy {
   constructor(x, yOffset, lane = 1) {
     this.width = 25;
@@ -14,43 +16,58 @@ export class Enemy {
     this.attackDamage = 8;
     this.attackDelay = 1200; // Slightly slower than soldiers
     this.lastAttack = 0;
+    this.lastLaneSwitch = 0;
   }
 
   takeDamage(amount) {
     this.health -= amount;
   }
 
-  update(allEnemies, allSoldiers, upperBase) {
+  update(allEnemies, allPlayers, upperBase) {
     if (this.health <= 0) return;
 
     let canMove = true;
     const padding = 10;
     const attackRange = 40;
+    const detectionRange = 250;
 
-    // 1. Check for soldiers/archers in the SAME LANE to attack
-    let targetSoldier = null;
-    for (const soldier of allSoldiers) {
-      if (soldier.lane !== this.lane) continue;
-      const dist = Math.abs(soldier.x - this.x);
-      // Enemy is on the right, soldier is on the left
-      if (soldier.x < this.x && dist < attackRange) {
-        targetSoldier = soldier;
-        canMove = false;
-        break;
+    // 1. Find the absolute closest player unit horizontally
+    let closestPlayer = null;
+    let minXDist = Infinity;
+
+    for (const playerUnit of allPlayers) {
+      const dist = this.x - playerUnit.x;
+      if (dist > 0 && dist < detectionRange) {
+        if (dist < minXDist) {
+          minXDist = dist;
+          closestPlayer = playerUnit;
+        }
       }
     }
 
-    if (targetSoldier) {
-      const now = Date.now();
-      if (now - this.lastAttack > this.attackDelay) {
-        targetSoldier.takeDamage(this.attackDamage);
-        this.lastAttack = now;
+    // 2. Decision Logic
+    if (closestPlayer) {
+      if (closestPlayer.lane === this.lane) {
+        if (minXDist < attackRange) {
+          const now = Date.now();
+          if (now - this.lastAttack > this.attackDelay) {
+            closestPlayer.takeDamage(this.attackDamage);
+            this.lastAttack = now;
+          }
+          canMove = false;
+        }
+      } else {
+        // Target is in another lane, switch to it!
+        if (Date.now() - this.lastLaneSwitch > 500) {
+          this.lane = closestPlayer.lane;
+          this.y = LANE_Y[this.lane];
+          this.lastLaneSwitch = Date.now();
+        }
       }
-      return; // Stop moving if attacking
     }
 
-    // 2. Check for base to attack (accessible from any lane)
-    if (upperBase && this.x < upperBase.x + upperBase.width / 2 + attackRange) {
+    // 3. Base detection (always hits base if close enough)
+    if (canMove && upperBase && this.x < upperBase.x + upperBase.width / 2 + attackRange) {
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
         upperBase.health = Math.max(0, upperBase.health - this.attackDamage);
@@ -59,20 +76,45 @@ export class Enemy {
       canMove = false;
     }
 
-    // 3. Normal movement collision with other enemies in the SAME LANE
+    // 4. Teammate collision and dynamic lane avoiding
     if (canMove) {
+      let blockedByTeammate = false;
       for (const other of allEnemies) {
         if (other === this || other.lane !== this.lane) continue;
-        // Since they only move left, check if 'other' is in front of 'this' (smaller X)
         if (other.x < this.x && this.x - other.x < this.width + padding) {
           canMove = false;
+          blockedByTeammate = true;
           break;
         }
       }
-    }
 
-    if (canMove) {
-      this.x -= this.speed;
+      if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 500) {
+        const candidateLanes = [];
+        if (this.lane > 0) candidateLanes.push(this.lane - 1);
+        if (this.lane < LANE_Y.length - 1) candidateLanes.push(this.lane + 1);
+
+        for (const nextLane of candidateLanes) {
+          let laneClear = true;
+          for (const other of allEnemies) {
+            if (other.lane === nextLane && Math.abs(other.x - this.x) < this.width + padding) {
+              laneClear = false;
+              break;
+            }
+          }
+
+          if (laneClear) {
+            this.lane = nextLane;
+            this.y = LANE_Y[nextLane];
+            this.lastLaneSwitch = Date.now();
+            canMove = true;
+            break;
+          }
+        }
+      }
+
+      if (canMove) {
+        this.x -= this.speed;
+      }
     }
   }
 
