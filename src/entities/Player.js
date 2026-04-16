@@ -36,8 +36,8 @@ export class Player {
     }
 
     if (worldBounds) {
-      this.x = Math.max(this.width / 2, Math.min(this.x, worldBounds.width - this.width / 2));
-      this.y = Math.max(this.height / 2, Math.min(this.y, worldBounds.height - this.height / 2));
+      this.x = Math.max(worldBounds.minX + this.width / 2, Math.min(this.x, worldBounds.maxX - this.width / 2));
+      this.y = Math.max(worldBounds.minY + this.height / 2, Math.min(this.y, worldBounds.maxY - this.height / 2));
     }
   }
 
