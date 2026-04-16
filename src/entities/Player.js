@@ -70,6 +70,12 @@ export class Player {
         ctx.strokeStyle = '#34495e';
         ctx.lineWidth = 2;
         ctx.strokeRect(drawX - 10, drawY - 10, 20, 20);
+      } else if (item === 'wood') {
+        ctx.fillStyle = '#a0522d'; // Sienna/Wood brown
+        ctx.fillRect(drawX - 12, drawY - 8, 24, 16);
+        ctx.strokeStyle = '#5d2906';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(drawX - 12, drawY - 8, 24, 16);
       } else if (item === 'sword') {
         // Draw a tiny sword
         ctx.fillStyle = '#bdc3c7'; // blade
@@ -77,6 +83,20 @@ export class Player {
         ctx.fillStyle = '#c0392b'; // handle
         ctx.fillRect(drawX - 6, drawY + 6, 12, 3);
         ctx.fillRect(drawX - 2, drawY + 6, 4, 6);
+      } else if (item === 'bow') {
+        // Draw a tiny bow
+        ctx.strokeStyle = '#8b4513';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(drawX, drawY, 10, -Math.PI/2, Math.PI/2);
+        ctx.stroke();
+        // Bow string
+        ctx.strokeStyle = '#ecf0f1';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(drawX, drawY - 10);
+        ctx.lineTo(drawX, drawY + 10);
+        ctx.stroke();
       }
       ctx.closePath();
     });

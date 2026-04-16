@@ -1,8 +1,10 @@
 import { Player } from './entities/Player.js';
 import { Smithy } from './entities/Smithy.js';
 import { Soldier } from './entities/Soldier.js';
+import { Archer } from './entities/Archer.js';
 import { Enemy } from './entities/Enemy.js';
 import { IronMine } from './entities/IronMine.js';
+import { Forest } from './entities/Forest.js';
 import { Armory } from './entities/Armory.js';
 import { UpperBase } from './entities/UpperBase.js';
 import { EnemyBase } from './entities/EnemyBase.js';
@@ -15,11 +17,14 @@ const UPPER_WORLD_HEIGHT = 150;
 const player = new Player(400, 300);
 const smithy = new Smithy(400, 300);
 const mine = new IronMine(0, 0);
+const forest = new Forest(0, 0);
 const armory = new Armory(0, 0);
 const upperBase = new UpperBase(0, 0);
 const enemyBase = new EnemyBase(0, 0);
 const soldiers = [];
+const archers = [];
 const enemies = [];
+const arrows = [];
 const camera = { x: 0, y: 0 };
 const GRID_SIZE = 100;
 
@@ -39,6 +44,9 @@ function resize() {
   
   mine.x = 100;
   mine.y = height - 100;
+
+  forest.x = 100;
+  forest.y = UPPER_WORLD_HEIGHT + 100;
   
   armory.x = width - 150;
   armory.y = UPPER_WORLD_HEIGHT + 60;
@@ -66,22 +74,38 @@ window.addEventListener('keydown', (e) => {
         player.inventory.push('iron');
       }
     }
-    // 2. Interaction with Smithy (Forge Iron -> Sword)
-    else if (smithy.isPlayerNear(player)) {
-      const ironIndex = player.inventory.indexOf('iron');
-      if (ironIndex !== -1) {
-        player.inventory[ironIndex] = 'sword';
+    // 2. Interaction with Forest (Gather Wood)
+    else if (forest.isPlayerNear(player)) {
+      if (player.inventory.length < player.maxInventory) {
+        player.inventory.push('wood');
       }
     }
-    // 3. Interaction with Armory (Deliver Sword -> Spawn Soldier)
+    // 3. Interaction with Smithy (Forge Iron -> Sword or Wood -> Bow)
+    else if (smithy.isPlayerNear(player)) {
+      const ironIndex = player.inventory.indexOf('iron');
+      const woodIndex = player.inventory.indexOf('wood');
+      
+      if (ironIndex !== -1) {
+        player.inventory[ironIndex] = 'sword';
+      } else if (woodIndex !== -1) {
+        player.inventory[woodIndex] = 'bow';
+      }
+    }
+    // 4. Interaction with Armory (Deliver Sword/Bow -> Spawn Soldier/Archer)
     else if (armory.isPlayerNear(player)) {
       const swordIndex = player.inventory.indexOf('sword');
+      const bowIndex = player.inventory.indexOf('bow');
+      
       if (swordIndex !== -1) {
         player.inventory.splice(swordIndex, 1);
         const newSoldier = new Soldier(UPPER_WORLD_HEIGHT / 2);
-        // Spawn "inside" the base
         newSoldier.x = upperBase.x; 
         soldiers.push(newSoldier);
+      } else if (bowIndex !== -1) {
+        player.inventory.splice(bowIndex, 1);
+        const newArcher = new Archer(UPPER_WORLD_HEIGHT / 2);
+        newArcher.x = upperBase.x; 
+        archers.push(newArcher);
       }
     }
   }
@@ -141,17 +165,27 @@ function update() {
   // Update soldiers
   for (let i = soldiers.length - 1; i >= 0; i--) {
     soldiers[i].update(soldiers, enemies, enemyBase);
-    if (soldiers[i].health <= 0 || soldiers[i].x > width + 100) {
-      soldiers.splice(i, 1);
-    }
+    if (soldiers[i].health <= 0) soldiers.splice(i, 1);
+  }
+
+  // Update archers
+  for (let i = archers.length - 1; i >= 0; i--) {
+    archers[i].update(archers, enemies, enemyBase, arrows);
+    if (archers[i].health <= 0) archers.splice(i, 1);
   }
 
   // Update enemies
   for (let i = enemies.length - 1; i >= 0; i--) {
-    enemies[i].update(enemies, soldiers, upperBase);
+    enemies[i].update(enemies, soldiers.concat(archers), upperBase);
     if (enemies[i].health <= 0 || enemies[i].x < -100) {
       enemies.splice(i, 1);
     }
+  }
+
+  // Update arrows
+  for (let i = arrows.length - 1; i >= 0; i--) {
+    arrows[i].update(enemies, enemyBase);
+    if (!arrows[i].active) arrows.splice(i, 1);
   }
   
   // Static world camera
@@ -177,12 +211,15 @@ function render() {
   upperBase.draw(ctx, camera);
   enemyBase.draw(ctx, camera);
   mine.draw(ctx, camera);
+  forest.draw(ctx, camera);
   smithy.draw(ctx, camera);
   armory.draw(ctx, camera);
   player.draw(ctx, camera);
   
   soldiers.forEach(s => s.draw(ctx, camera));
+  archers.forEach(a => a.draw(ctx, camera));
   enemies.forEach(e => e.draw(ctx, camera));
+  arrows.forEach(a => a.draw(ctx, camera));
   
   // Interaction Prompts
   ctx.fillStyle = '#fff';
@@ -195,17 +232,31 @@ function render() {
     } else {
       ctx.fillText('Inventory Full!', mine.x, mine.y + mine.height / 2 + 20);
     }
-  } else if (smithy.isPlayerNear(player)) {
-    if (player.inventory.includes('iron')) {
-      ctx.fillText('Press SPACE to forge sword', smithy.x, smithy.y + smithy.height / 2 + 20);
+  } else if (forest.isPlayerNear(player)) {
+    if (player.inventory.length < player.maxInventory) {
+      ctx.fillText('Press SPACE to gather wood', forest.x, forest.y + forest.height / 2 + 20);
     } else {
-      ctx.fillText('Need Iron!', smithy.x, smithy.y + smithy.height / 2 + 20);
+      ctx.fillText('Inventory Full!', forest.x, forest.y + forest.height / 2 + 20);
+    }
+  } else if (smithy.isPlayerNear(player)) {
+    const hasIron = player.inventory.includes('iron');
+    const hasWood = player.inventory.includes('wood');
+    if (hasIron) {
+      ctx.fillText('Press SPACE to forge sword', smithy.x, smithy.y + smithy.height / 2 + 20);
+    } else if (hasWood) {
+      ctx.fillText('Press SPACE to forge bow', smithy.x, smithy.y + smithy.height / 2 + 20);
+    } else {
+      ctx.fillText('Need Iron or Wood!', smithy.x, smithy.y + smithy.height / 2 + 20);
     }
   } else if (armory.isPlayerNear(player)) {
-    if (player.inventory.includes('sword')) {
+    const hasSword = player.inventory.includes('sword');
+    const hasBow = player.inventory.includes('bow');
+    if (hasSword) {
       ctx.fillText('Press SPACE to deliver sword', armory.x, armory.y + armory.height / 2 + 20);
+    } else if (hasBow) {
+      ctx.fillText('Press SPACE to deliver bow', armory.x, armory.y + armory.height / 2 + 20);
     } else {
-      ctx.fillText('Need Sword!', armory.x, armory.y + armory.height / 2 + 20);
+      ctx.fillText('Need Sword or Bow!', armory.x, armory.y + armory.height / 2 + 20);
     }
   }
 
