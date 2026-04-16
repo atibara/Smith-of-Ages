@@ -4,9 +4,8 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 let width, height;
-const player = new Player(2000, 2000); // Start in the middle of a large world
+const player = new Player(400, 300);
 const camera = { x: 0, y: 0 };
-const WORLD_SIZE = 4000;
 const GRID_SIZE = 100;
 
 function resize() {
@@ -18,6 +17,10 @@ function resize() {
 
 window.addEventListener('resize', resize);
 resize();
+player.x = width / 2;
+player.y = height / 2;
+player.targetX = player.x;
+player.targetY = player.y;
 
 // Input handling
 canvas.addEventListener('mousedown', (e) => {
@@ -55,19 +58,15 @@ function drawGrid() {
   // Draw world bounds
   ctx.strokeStyle = '#555';
   ctx.lineWidth = 5;
-  ctx.strokeRect(0 - camera.x, 0 - camera.y, WORLD_SIZE, WORLD_SIZE);
+  ctx.strokeRect(0, 0, width, height);
 }
 
 function update() {
-  player.update();
+  player.update({ width, height });
   
-  // Smoothly follow player
-  camera.x = player.x - width / 2;
-  camera.y = player.y - height / 2;
-  
-  // Clamp camera to world bounds
-  camera.x = Math.max(0, Math.min(camera.x, WORLD_SIZE - width));
-  camera.y = Math.max(0, Math.min(camera.y, WORLD_SIZE - height));
+  // Static world camera
+  camera.x = 0;
+  camera.y = 0;
 }
 
 function render() {
