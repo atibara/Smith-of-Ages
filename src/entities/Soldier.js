@@ -6,37 +6,80 @@ export class Soldier {
     this.y = yOffset; // Vertical center of the upper world path
     this.color = '#3498db'; // Look like blue soldiers
     this.speed = 2;
+    
+    // Health and Combat
+    this.health = 100;
+    this.maxHealth = 100;
+    this.attackDamage = 10;
+    this.attackDelay = 1000; // 1 second between attacks
+    this.lastAttack = 0;
   }
 
-  update(allSoldiers) {
-    let canMove = true;
-    const padding = 10; // 10px distance between soldiers
+  takeDamage(amount) {
+    this.health -= amount;
+  }
 
-    for (const other of allSoldiers) {
-      if (other === this) continue;
-      
-      // Since they only move right, check if 'other' is in front of 'this'
-      if (other.x > this.x && other.x - this.x < this.width + padding) {
+  update(allSoldiers, allEnemies) {
+    if (this.health <= 0) return;
+
+    let canMove = true;
+    const padding = 10;
+    const attackRange = 40;
+
+    // Check for enemies to attack
+    let targetEnemy = null;
+    for (const enemy of allEnemies) {
+      const dist = Math.abs(enemy.x - this.x);
+      if (enemy.x > this.x && dist < attackRange) {
+        targetEnemy = enemy;
         canMove = false;
         break;
       }
     }
 
-    if (canMove) {
-      this.x += this.speed;
+    if (targetEnemy) {
+      const now = Date.now();
+      if (now - this.lastAttack > this.attackDelay) {
+        targetEnemy.takeDamage(this.attackDamage);
+        this.lastAttack = now;
+      }
+    } else {
+      // Normal movement collision with other soldiers
+      for (const other of allSoldiers) {
+        if (other === this) continue;
+        if (other.x > this.x && other.x - this.x < this.width + padding) {
+          canMove = false;
+          break;
+        }
+      }
+
+      if (canMove) {
+        this.x += this.speed;
+      }
     }
   }
 
   draw(ctx, camera) {
+    const drawX = this.x - camera.x;
+    const drawY = this.y - camera.y;
+
+    // Draw health bar
+    const barWidth = 30;
+    const barHeight = 4;
+    ctx.fillStyle = '#c0392b';
+    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth, barHeight);
+    ctx.fillStyle = '#2ecc71';
+    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth * (this.health / this.maxHealth), barHeight);
+
     // Draw soldier
     ctx.beginPath();
-    ctx.roundRect(this.x - camera.x - this.width / 2, this.y - camera.y - this.height / 2, this.width, this.height, 5);
+    ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, 5);
     ctx.fillStyle = this.color;
     ctx.fill();
     
     // Draw a small sword visually
     ctx.fillStyle = '#bdc3c7';
-    ctx.fillRect(this.x - camera.x + this.width / 2, this.y - camera.y - 5, 20, 5);
+    ctx.fillRect(drawX + this.width / 2, drawY - 5, 20, 5);
     ctx.closePath();
   }
 }

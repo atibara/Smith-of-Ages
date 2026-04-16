@@ -1,6 +1,7 @@
 import { Player } from './entities/Player.js';
 import { Smithy } from './entities/Smithy.js';
 import { Soldier } from './entities/Soldier.js';
+import { Enemy } from './entities/Enemy.js';
 import { IronMine } from './entities/IronMine.js';
 import { Armory } from './entities/Armory.js';
 import { UpperBase } from './entities/UpperBase.js';
@@ -16,8 +17,13 @@ const mine = new IronMine(0, 0);
 const armory = new Armory(0, 0);
 const upperBase = new UpperBase(0, 0);
 const soldiers = [];
+const enemies = [];
 const camera = { x: 0, y: 0 };
 const GRID_SIZE = 100;
+
+// Enemy Spawning
+let lastEnemySpawn = Date.now();
+const SPAWN_INTERVAL = 8000; // Spawn every 8 seconds
 
 function resize() {
   width = window.innerWidth;
@@ -120,10 +126,26 @@ function drawGrid() {
 function update() {
   player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height });
   
+  // Spawning enemies
+  if (Date.now() - lastEnemySpawn > SPAWN_INTERVAL) {
+    const newEnemy = new Enemy(width + 50, UPPER_WORLD_HEIGHT / 2);
+    enemies.push(newEnemy);
+    lastEnemySpawn = Date.now();
+  }
+
+  // Update soldiers
   for (let i = soldiers.length - 1; i >= 0; i--) {
-    soldiers[i].update(soldiers);
-    if (soldiers[i].x > width + 50) {
+    soldiers[i].update(soldiers, enemies);
+    if (soldiers[i].health <= 0 || soldiers[i].x > width + 100) {
       soldiers.splice(i, 1);
+    }
+  }
+
+  // Update enemies
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    enemies[i].update(enemies, soldiers, upperBase);
+    if (enemies[i].health <= 0 || enemies[i].x < -100) {
+      enemies.splice(i, 1);
     }
   }
   
@@ -152,7 +174,9 @@ function render() {
   smithy.draw(ctx, camera);
   armory.draw(ctx, camera);
   player.draw(ctx, camera);
+  
   soldiers.forEach(s => s.draw(ctx, camera));
+  enemies.forEach(e => e.draw(ctx, camera));
   
   // Interaction Prompts
   ctx.fillStyle = '#fff';
@@ -178,8 +202,20 @@ function render() {
       ctx.fillText('Need Sword!', armory.x, armory.y + armory.height / 2 + 20);
     }
   }
-  
-  requestAnimationFrame(gameLoop);
+
+  // Game Over Check
+  if (upperBase.health <= 0) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#e74c3c';
+    ctx.font = 'bold 48px monospace';
+    ctx.fillText('GAME OVER - BASE DESTROYED', width / 2, height / 2);
+    ctx.font = '24px monospace';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('Refresh to restart', width / 2, height / 2 + 50);
+  } else {
+    requestAnimationFrame(gameLoop);
+  }
 }
 
 function gameLoop() {
