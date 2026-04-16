@@ -5,6 +5,7 @@ import { Enemy } from './entities/Enemy.js';
 import { IronMine } from './entities/IronMine.js';
 import { Armory } from './entities/Armory.js';
 import { UpperBase } from './entities/UpperBase.js';
+import { EnemyBase } from './entities/EnemyBase.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -16,6 +17,7 @@ const smithy = new Smithy(400, 300);
 const mine = new IronMine(0, 0);
 const armory = new Armory(0, 0);
 const upperBase = new UpperBase(0, 0);
+const enemyBase = new EnemyBase(0, 0);
 const soldiers = [];
 const enemies = [];
 const camera = { x: 0, y: 0 };
@@ -43,6 +45,9 @@ function resize() {
 
   upperBase.x = 80;
   upperBase.y = UPPER_WORLD_HEIGHT / 2;
+  
+  enemyBase.x = width - 80;
+  enemyBase.y = UPPER_WORLD_HEIGHT / 2;
 }
 
 window.addEventListener('resize', resize);
@@ -126,16 +131,16 @@ function drawGrid() {
 function update() {
   player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height });
   
-  // Spawning enemies
-  if (Date.now() - lastEnemySpawn > SPAWN_INTERVAL) {
-    const newEnemy = new Enemy(width + 50, UPPER_WORLD_HEIGHT / 2);
+  // Spawning enemies from the enemy base if it's not destroyed
+  if (enemyBase.health > 0 && Date.now() - lastEnemySpawn > SPAWN_INTERVAL) {
+    const newEnemy = new Enemy(enemyBase.x, UPPER_WORLD_HEIGHT / 2);
     enemies.push(newEnemy);
     lastEnemySpawn = Date.now();
   }
 
   // Update soldiers
   for (let i = soldiers.length - 1; i >= 0; i--) {
-    soldiers[i].update(soldiers, enemies);
+    soldiers[i].update(soldiers, enemies, enemyBase);
     if (soldiers[i].health <= 0 || soldiers[i].x > width + 100) {
       soldiers.splice(i, 1);
     }
@@ -170,6 +175,7 @@ function render() {
   
   drawGrid();
   upperBase.draw(ctx, camera);
+  enemyBase.draw(ctx, camera);
   mine.draw(ctx, camera);
   smithy.draw(ctx, camera);
   armory.draw(ctx, camera);
@@ -203,13 +209,22 @@ function render() {
     }
   }
 
-  // Game Over Check
+  // End Game Check
   if (upperBase.health <= 0) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = '#e74c3c';
     ctx.font = 'bold 48px monospace';
-    ctx.fillText('GAME OVER - BASE DESTROYED', width / 2, height / 2);
+    ctx.fillText('DEFEAT - BASE DESTROYED', width / 2, height / 2);
+    ctx.font = '24px monospace';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('Refresh to restart', width / 2, height / 2 + 50);
+  } else if (enemyBase.health <= 0) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#2ecc71';
+    ctx.font = 'bold 48px monospace';
+    ctx.fillText('VICTORY - ENEMY BASE DESTROYED', width / 2, height / 2);
     ctx.font = '24px monospace';
     ctx.fillStyle = '#fff';
     ctx.fillText('Refresh to restart', width / 2, height / 2 + 50);

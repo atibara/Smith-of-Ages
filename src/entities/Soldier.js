@@ -19,14 +19,14 @@ export class Soldier {
     this.health -= amount;
   }
 
-  update(allSoldiers, allEnemies) {
+  update(allSoldiers, allEnemies, enemyBase) {
     if (this.health <= 0) return;
 
     let canMove = true;
     const padding = 10;
     const attackRange = 40;
 
-    // Check for enemies to attack
+    // 1. Check for enemies to attack
     let targetEnemy = null;
     for (const enemy of allEnemies) {
       const dist = Math.abs(enemy.x - this.x);
@@ -43,8 +43,16 @@ export class Soldier {
         targetEnemy.takeDamage(this.attackDamage);
         this.lastAttack = now;
       }
+    } else if (enemyBase && this.x > enemyBase.x - enemyBase.width / 2 - attackRange) {
+      // 2. Check for enemy base to attack
+      const now = Date.now();
+      if (now - this.lastAttack > this.attackDelay) {
+        enemyBase.health = Math.max(0, enemyBase.health - this.attackDamage);
+        this.lastAttack = now;
+      }
+      canMove = false;
     } else {
-      // Normal movement collision with other soldiers
+      // 3. Normal movement collision with other soldiers
       for (const other of allSoldiers) {
         if (other === this) continue;
         if (other.x > this.x && other.x - this.x < this.width + padding) {
