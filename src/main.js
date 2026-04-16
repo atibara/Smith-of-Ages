@@ -2,11 +2,14 @@ import { Player } from './entities/Player.js';
 import { Smithy } from './entities/Smithy.js';
 import { Soldier } from './entities/Soldier.js';
 import { Archer } from './entities/Archer.js';
+import { Mangonel } from './entities/Mangonel.js';
+import { Stone } from './entities/Stone.js';
 import { Enemy } from './entities/Enemy.js';
 import { EnemyArcher } from './entities/EnemyArcher.js';
 import { IronMine } from './entities/IronMine.js';
 import { Forest } from './entities/Forest.js';
 import { Armory } from './entities/Armory.js';
+import { SiegeWorkshop } from './entities/SiegeWorkshop.js';
 import { UpperBase } from './entities/UpperBase.js';
 import { EnemyBase } from './entities/EnemyBase.js';
 import { UPPER_WORLD_HEIGHT, LANE_Y, GRID_SIZE } from './Constants.js';
@@ -20,12 +23,15 @@ const smithy = new Smithy(400, 300);
 const mine = new IronMine(0, 0);
 const forest = new Forest(0, 0);
 const armory = new Armory(0, 0);
+const workshop = new SiegeWorkshop(0, 0);
 const upperBase = new UpperBase(0, 0);
 const enemyBase = new EnemyBase(0, 0);
 const soldiers = [];
 const archers = [];
+const mangonels = [];
 const enemies = [];
 const arrows = [];
+const stones = [];
 const camera = { x: 0, y: 0 };
 
 // Enemy Spawning
@@ -56,6 +62,9 @@ function resize() {
   armory.x = width - 150;
   armory.y = UPPER_WORLD_HEIGHT + 60;
 
+  workshop.x = width - 200;
+  workshop.y = height - 120;
+
   upperBase.x = 80;
   upperBase.y = UPPER_WORLD_HEIGHT / 2;
   
@@ -85,29 +94,54 @@ window.addEventListener('keydown', (e) => {
         player.inventory.push('wood');
       }
     }
-    // 3. Interaction with Smithy (Forge Iron -> Sword or Wood -> Bow)
+    // 3. Interaction with Smithy (Forge Iron -> Sword or Wood -> Bow) - FIXED BUG
     else if (smithy.isPlayerNear(player)) {
       const ironIndex = player.inventory.indexOf('iron');
       const woodIndex = player.inventory.indexOf('wood');
-      
       if (ironIndex !== -1) {
         player.inventory[ironIndex] = 'sword';
       } else if (woodIndex !== -1) {
         player.inventory[woodIndex] = 'bow';
       }
     }
-    // 4. Interaction with Armory (Deliver Sword/Bow -> Spawn Soldier/Archer)
+    // 4. Interaction with Siege Workshop (2W + 1I -> Mangonel Follower)
+    else if (workshop.isPlayerNear(player)) {
+      if (mangonels.length > 0) return; // Only one allowed
+
+      const ironIndices = player.inventory.map((item, i) => item === 'iron' ? i : -1).filter(i => i !== -1);
+      const woodIndices = player.inventory.map((item, i) => item === 'wood' ? i : -1).filter(i => i !== -1);
+      
+      if (woodIndices.length >= 2 && ironIndices.length >= 1) {
+        const toRemove = [woodIndices[0], woodIndices[1], ironIndices[0]].sort((a,b) => b-a);
+        toRemove.forEach(idx => player.inventory.splice(idx, 1));
+        
+        // Spawn mangonel following player
+        const newMangonel = new Mangonel(player.x - 60, player.y);
+        mangonels.push(newMangonel);
+      }
+    }
+    // 5. Interaction with Armory (Deliver Sword/Bow OR Deploy Mangonel)
     else if (armory.isPlayerNear(player)) {
+      // Check for mangonel deployment first
+      const followingMangonel = mangonels.find(m => m.state === 'FOLLOWING');
+      if (followingMangonel) {
+        followingMangonel.state = 'COMBAT';
+        followingMangonel.world = 'upper';
+        followingMangonel.x = upperBase.x;
+        followingMangonel.y = LANE_Y[nextSoldierLane];
+        followingMangonel.lane = nextSoldierLane;
+        nextSoldierLane = (nextSoldierLane + 1) % 3;
+        return;
+      }
+
       const swordIndex = player.inventory.indexOf('sword');
       const bowIndex = player.inventory.indexOf('bow');
       
       if (swordIndex !== -1 || bowIndex !== -1) {
-        // Tactic: Find which lane has enemies to prioritize it
         let targetLane = -1;
-        const allEnemies = enemies.concat(); // Enemy class + EnemyArcher class check
-        if (allEnemies.length > 0) {
+        if (enemies.length > 0) {
           const laneCounts = [0, 0, 0];
-          allEnemies.forEach(e => laneCounts[e.lane]++);
+          enemies.forEach(e => laneCounts[e.lane]++);
           let maxCount = 0;
           for (let l = 0; l < 3; l++) {
             if (laneCounts[l] > maxCount) {
@@ -121,17 +155,12 @@ window.addEventListener('keydown', (e) => {
         
         if (swordIndex !== -1) {
           player.inventory.splice(swordIndex, 1);
-          const newSoldier = new Soldier(LANE_Y[spawnLane], spawnLane);
-          newSoldier.x = upperBase.x; 
-          soldiers.push(newSoldier);
+          soldiers.push(new Soldier(LANE_Y[spawnLane], spawnLane));
         } else if (bowIndex !== -1) {
           player.inventory.splice(bowIndex, 1);
-          const newArcher = new Archer(LANE_Y[spawnLane], spawnLane);
-          newArcher.x = upperBase.x; 
-          archers.push(newArcher);
+          archers.push(new Archer(LANE_Y[spawnLane], spawnLane));
         }
 
-        // If we used the target lane, we don't increment the cycle
         if (targetLane === -1) {
           nextSoldierLane = (nextSoldierLane + 1) % LANE_Y.length;
         }
@@ -237,9 +266,15 @@ function update() {
     if (archers[i].health <= 0) archers.splice(i, 1);
   }
 
+  // Update mangonels
+  for (let i = mangonels.length - 1; i >= 0; i--) {
+    mangonels[i].update(mangonels, enemies, enemyBase, stones, player, allPlayerUnits);
+    if (mangonels[i].health <= 0) mangonels.splice(i, 1);
+  }
+
   // Update enemies
   for (let i = enemies.length - 1; i >= 0; i--) {
-    enemies[i].update(enemies, allPlayerUnits, upperBase, arrows);
+    enemies[i].update(enemies, allPlayerUnits.concat(mangonels), upperBase, arrows);
     if (enemies[i].health <= 0 || enemies[i].x < -100) {
       enemies.splice(i, 1);
     }
@@ -250,9 +285,15 @@ function update() {
     if (arrows[i].team === 'player') {
       arrows[i].update(enemies, enemyBase);
     } else {
-      arrows[i].update(allPlayerUnits, upperBase);
+      arrows[i].update(allPlayerUnits.concat(mangonels), upperBase);
     }
     if (!arrows[i].active) arrows.splice(i, 1);
+  }
+
+  // Update stones
+  for (let i = stones.length - 1; i >= 0; i--) {
+    stones[i].update(enemies, enemyBase);
+    if (!stones[i].active) stones.splice(i, 1);
   }
   
   // Static world camera
@@ -279,14 +320,21 @@ function render() {
   enemyBase.draw(ctx, camera);
   mine.draw(ctx, camera);
   forest.draw(ctx, camera);
+  workshop.draw(ctx, camera);
   smithy.draw(ctx, camera);
   armory.draw(ctx, camera);
   player.draw(ctx, camera);
   
+  // Draw following mangonels in Lower World
+  mangonels.filter(m => m.state === 'FOLLOWING').forEach(m => m.draw(ctx, camera));
+  
   soldiers.forEach(s => s.draw(ctx, camera));
   archers.forEach(a => a.draw(ctx, camera));
+  // Draw combat mangonels in Upper World
+  mangonels.filter(m => m.state === 'COMBAT').forEach(m => m.draw(ctx, camera));
   enemies.forEach(e => e.draw(ctx, camera));
   arrows.forEach(a => a.draw(ctx, camera));
+  stones.forEach(s => s.draw(ctx, camera));
   
   // Interaction Prompts
   ctx.fillStyle = '#fff';
@@ -308,22 +356,32 @@ function render() {
   } else if (smithy.isPlayerNear(player)) {
     const hasIron = player.inventory.includes('iron');
     const hasWood = player.inventory.includes('wood');
-    if (hasIron) {
-      ctx.fillText('Press SPACE to forge sword', smithy.x, smithy.y + smithy.height / 2 + 20);
-    } else if (hasWood) {
-      ctx.fillText('Press SPACE to forge bow', smithy.x, smithy.y + smithy.height / 2 + 20);
+    const woodCount = player.inventory.filter(i => i === 'wood').length;
+    const ironCount = player.inventory.filter(i => i === 'iron').length;
+
+  } else if (workshop.isPlayerNear(player)) {
+    const woodCount = player.inventory.filter(i => i === 'wood').length;
+    const ironCount = player.inventory.filter(i => i === 'iron').length;
+    if (mangonels.length > 0) {
+      ctx.fillText('Already have a Mangonel!', workshop.x, workshop.y + workshop.height / 2 + 20);
+    } else if (woodCount >= 2 && ironCount >= 1) {
+      ctx.fillText('Press SPACE to build MANGONEL (2W + 1I)', workshop.x, workshop.y + workshop.height / 2 + 20);
     } else {
-      ctx.fillText('Need Iron or Wood!', smithy.x, smithy.y + smithy.height / 2 + 20);
+      ctx.fillText('Need 2 Wood and 1 Iron!', workshop.x, workshop.y + workshop.height / 2 + 20);
     }
   } else if (armory.isPlayerNear(player)) {
     const hasSword = player.inventory.includes('sword');
     const hasBow = player.inventory.includes('bow');
-    if (hasSword) {
+    const followingMangonel = mangonels.find(m => m.state === 'FOLLOWING');
+    
+    if (followingMangonel) {
+      ctx.fillText('Press SPACE to deploy MANGONEL to battlefield', armory.x, armory.y + armory.height / 2 + 20);
+    } else if (hasSword) {
       ctx.fillText('Press SPACE to deliver sword', armory.x, armory.y + armory.height / 2 + 20);
     } else if (hasBow) {
       ctx.fillText('Press SPACE to deliver bow', armory.x, armory.y + armory.height / 2 + 20);
     } else {
-      ctx.fillText('Need Sword or Bow!', armory.x, armory.y + armory.height / 2 + 20);
+      ctx.fillText('Need Sword, Bow or Follower Mangonel!', armory.x, armory.y + armory.height / 2 + 20);
     }
   }
 
