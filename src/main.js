@@ -35,6 +35,10 @@ const ENEMY_SPAWN_INTERVAL_MAX = 8000;
 const ENEMY_SPAWN_INTERVAL_MIN = 2000;
 let currentSpawnInterval = ENEMY_SPAWN_INTERVAL_MAX;
 
+const LANE_Y = [40, 75, 110]; // Y-coords for lanes 0, 1, 2
+let nextSoldierLane = 0;
+let nextEnemyLane = 0;
+
 function resize() {
   width = window.innerWidth;
   height = window.innerHeight;
@@ -101,14 +105,18 @@ window.addEventListener('keydown', (e) => {
       
       if (swordIndex !== -1) {
         player.inventory.splice(swordIndex, 1);
-        const newSoldier = new Soldier(UPPER_WORLD_HEIGHT / 2);
+        const lane = nextSoldierLane;
+        const newSoldier = new Soldier(LANE_Y[lane], lane);
         newSoldier.x = upperBase.x; 
         soldiers.push(newSoldier);
+        nextSoldierLane = (nextSoldierLane + 1) % LANE_Y.length;
       } else if (bowIndex !== -1) {
         player.inventory.splice(bowIndex, 1);
-        const newArcher = new Archer(UPPER_WORLD_HEIGHT / 2);
+        const lane = nextSoldierLane;
+        const newArcher = new Archer(LANE_Y[lane], lane);
         newArcher.x = upperBase.x; 
         archers.push(newArcher);
+        nextSoldierLane = (nextSoldierLane + 1) % LANE_Y.length;
       }
     }
   }
@@ -149,7 +157,7 @@ function drawGrid() {
   }
   ctx.stroke();
   
-  // Draw world bounds
+  // Drawworld bounds
   ctx.strokeStyle = '#555';
   ctx.lineWidth = 5;
   ctx.strokeRect(0, UPPER_WORLD_HEIGHT, width, height - UPPER_WORLD_HEIGHT);
@@ -171,12 +179,14 @@ function update() {
 
   // Spawning enemies from the enemy base if it's not destroyed
   if (enemyBase.health > 0 && Date.now() - lastEnemySpawn > currentSpawnInterval) {
+    const lane = nextEnemyLane;
     // 75% Melee Enemy, 25% Archer Enemy
     if (Math.random() < 0.75) {
-      enemies.push(new Enemy(enemyBase.x, UPPER_WORLD_HEIGHT / 2));
+      enemies.push(new Enemy(enemyBase.x, LANE_Y[lane], lane));
     } else {
-      enemies.push(new EnemyArcher(enemyBase.x, UPPER_WORLD_HEIGHT / 2));
+      enemies.push(new EnemyArcher(enemyBase.x, LANE_Y[lane], lane));
     }
+    nextEnemyLane = (nextEnemyLane + 1) % LANE_Y.length;
     lastEnemySpawn = Date.now();
   }
 

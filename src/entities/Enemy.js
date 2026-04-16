@@ -1,9 +1,10 @@
 export class Enemy {
-  constructor(x, yOffset) {
+  constructor(x, yOffset, lane = 1) {
     this.width = 25;
     this.height = 40;
     this.x = x;
     this.y = yOffset;
+    this.lane = lane; // 0, 1, 2
     this.color = '#e74c3c'; // Red-ish for enemies
     this.speed = 1.5;
     
@@ -26,9 +27,10 @@ export class Enemy {
     const padding = 10;
     const attackRange = 40;
 
-    // 1. Check for soldiers to attack
+    // 1. Check for soldiers/archers in the SAME LANE to attack
     let targetSoldier = null;
     for (const soldier of allSoldiers) {
+      if (soldier.lane !== this.lane) continue;
       const dist = Math.abs(soldier.x - this.x);
       // Enemy is on the right, soldier is on the left
       if (soldier.x < this.x && dist < attackRange) {
@@ -47,7 +49,7 @@ export class Enemy {
       return; // Stop moving if attacking
     }
 
-    // 2. Check for base to attack
+    // 2. Check for base to attack (accessible from any lane)
     if (upperBase && this.x < upperBase.x + upperBase.width / 2 + attackRange) {
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
@@ -57,10 +59,10 @@ export class Enemy {
       canMove = false;
     }
 
-    // 3. Normal movement collision with other enemies
+    // 3. Normal movement collision with other enemies in the SAME LANE
     if (canMove) {
       for (const other of allEnemies) {
-        if (other === this) continue;
+        if (other === this || other.lane !== this.lane) continue;
         // Since they only move left, check if 'other' is in front of 'this' (smaller X)
         if (other.x < this.x && this.x - other.x < this.width + padding) {
           canMove = false;

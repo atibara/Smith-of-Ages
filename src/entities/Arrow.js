@@ -1,8 +1,9 @@
 export class Arrow {
-  constructor(x, y, damage, team = 'player') {
+  constructor(x, y, damage, team = 'player', lane = 1) {
     this.x = x;
     this.y = y;
     this.team = team;
+    this.lane = lane;
     this.speed = team === 'player' ? 7 : -7;
     this.damage = damage;
     this.width = 15;
@@ -13,8 +14,9 @@ export class Arrow {
   update(targets, targetBase) {
     this.x += this.speed;
 
-    // Check collision with targets (soldiers, archers, or enemies)
+    // Check collision with targets (soldiers, archers, or enemies) IN THE SAME LANE
     for (const target of targets) {
+      if (target.lane !== this.lane) continue;
       if (this.x > target.x - target.width / 2 && 
           this.x < target.x + target.width / 2 &&
           Math.abs(this.y - target.y) < target.height / 2) {
@@ -24,7 +26,7 @@ export class Arrow {
       }
     }
 
-    // Check collision with target base
+    // Check collision with target base (base is any-lane)
     if (this.active && targetBase && 
         ((this.team === 'player' && this.x > targetBase.x - targetBase.width / 2) ||
          (this.team === 'enemy' && this.x < targetBase.x + targetBase.width / 2)) &&

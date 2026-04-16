@@ -1,9 +1,10 @@
 export class Soldier {
-  constructor(yOffset) {
+  constructor(yOffset, lane = 1) {
     this.width = 25;
     this.height = 40;
     this.x = -this.width; // Start slightly offscreen to the left
     this.y = yOffset; // Vertical center of the upper world path
+    this.lane = lane; // 0 (top), 1 (middle), 2 (bottom)
     this.color = '#3498db'; // Look like blue soldiers
     this.speed = 2;
     
@@ -26,9 +27,10 @@ export class Soldier {
     const padding = 10;
     const attackRange = 40;
 
-    // 1. Check for enemies to attack
+    // 1. Check for enemies in the SAME LANE to attack
     let targetEnemy = null;
     for (const enemy of allEnemies) {
+      if (enemy.lane !== this.lane) continue;
       const dist = Math.abs(enemy.x - this.x);
       if (enemy.x > this.x && dist < attackRange) {
         targetEnemy = enemy;
@@ -44,7 +46,7 @@ export class Soldier {
         this.lastAttack = now;
       }
     } else if (enemyBase && this.x > enemyBase.x - enemyBase.width / 2 - attackRange) {
-      // 2. Check for enemy base to attack
+      // 2. Check for enemy base to attack (any lane can hit base)
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
         enemyBase.health = Math.max(0, enemyBase.health - this.attackDamage);
@@ -52,9 +54,9 @@ export class Soldier {
       }
       canMove = false;
     } else {
-      // 3. Normal movement collision with other soldiers
+      // 3. Normal movement collision with other soldiers in the SAME LANE
       for (const other of allSoldiers) {
-        if (other === this) continue;
+        if (other === this || other.lane !== this.lane) continue;
         if (other.x > this.x && other.x - this.x < this.width + padding) {
           canMove = false;
           break;
