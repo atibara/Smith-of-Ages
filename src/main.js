@@ -3,6 +3,7 @@ import { Smithy } from './entities/Smithy.js';
 import { Soldier } from './entities/Soldier.js';
 import { Archer } from './entities/Archer.js';
 import { Enemy } from './entities/Enemy.js';
+import { EnemyArcher } from './entities/EnemyArcher.js';
 import { IronMine } from './entities/IronMine.js';
 import { Forest } from './entities/Forest.js';
 import { Armory } from './entities/Armory.js';
@@ -30,7 +31,9 @@ const GRID_SIZE = 100;
 
 // Enemy Spawning
 let lastEnemySpawn = Date.now();
-const SPAWN_INTERVAL = 8000; // Spawn every 8 seconds
+const ENEMY_SPAWN_INTERVAL_MAX = 8000; 
+const ENEMY_SPAWN_INTERVAL_MIN = 2000;
+let currentSpawnInterval = ENEMY_SPAWN_INTERVAL_MAX;
 
 function resize() {
   width = window.innerWidth;
@@ -155,10 +158,25 @@ function drawGrid() {
 function update() {
   player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height });
   
+  // Calculate dynamic spawn interval based on player proximity to enemy base
+  const allPlayerUnits = soldiers.concat(archers);
+  if (allPlayerUnits.length > 0) {
+    const maxX = Math.max(...allPlayerUnits.map(u => u.x));
+    // Normalize proximity (0 when at upperBase, 1 when at enemyBase)
+    const proximity = Math.min(1, Math.max(0, (maxX - upperBase.x) / (enemyBase.x - upperBase.x)));
+    currentSpawnInterval = ENEMY_SPAWN_INTERVAL_MAX - (ENEMY_SPAWN_INTERVAL_MAX - ENEMY_SPAWN_INTERVAL_MIN) * proximity;
+  } else {
+    currentSpawnInterval = ENEMY_SPAWN_INTERVAL_MAX;
+  }
+
   // Spawning enemies from the enemy base if it's not destroyed
-  if (enemyBase.health > 0 && Date.now() - lastEnemySpawn > SPAWN_INTERVAL) {
-    const newEnemy = new Enemy(enemyBase.x, UPPER_WORLD_HEIGHT / 2);
-    enemies.push(newEnemy);
+  if (enemyBase.health > 0 && Date.now() - lastEnemySpawn > currentSpawnInterval) {
+    // 75% Melee Enemy, 25% Archer Enemy
+    if (Math.random() < 0.75) {
+      enemies.push(new Enemy(enemyBase.x, UPPER_WORLD_HEIGHT / 2));
+    } else {
+      enemies.push(new EnemyArcher(enemyBase.x, UPPER_WORLD_HEIGHT / 2));
+    }
     lastEnemySpawn = Date.now();
   }
 
@@ -176,7 +194,7 @@ function update() {
 
   // Update enemies
   for (let i = enemies.length - 1; i >= 0; i--) {
-    enemies[i].update(enemies, soldiers.concat(archers), upperBase);
+    enemies[i].update(enemies, allPlayerUnits, upperBase, arrows);
     if (enemies[i].health <= 0 || enemies[i].x < -100) {
       enemies.splice(i, 1);
     }
@@ -184,7 +202,11 @@ function update() {
 
   // Update arrows
   for (let i = arrows.length - 1; i >= 0; i--) {
-    arrows[i].update(enemies, enemyBase);
+    if (arrows[i].team === 'player') {
+      arrows[i].update(enemies, enemyBase);
+    } else {
+      arrows[i].update(allPlayerUnits, upperBase);
+    }
     if (!arrows[i].active) arrows.splice(i, 1);
   }
   

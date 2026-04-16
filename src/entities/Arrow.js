@@ -1,38 +1,40 @@
 export class Arrow {
-  constructor(x, y, damage) {
+  constructor(x, y, damage, team = 'player') {
     this.x = x;
     this.y = y;
-    this.speed = 7;
+    this.team = team;
+    this.speed = team === 'player' ? 7 : -7;
     this.damage = damage;
     this.width = 15;
     this.height = 3;
     this.active = true;
   }
 
-  update(allEnemies, enemyBase) {
+  update(targets, targetBase) {
     this.x += this.speed;
 
-    // Check collision with enemies
-    for (const enemy of allEnemies) {
-      if (this.x > enemy.x - enemy.width / 2 && 
-          this.x < enemy.x + enemy.width / 2 &&
-          Math.abs(this.y - enemy.y) < enemy.height / 2) {
-        enemy.takeDamage(this.damage);
+    // Check collision with targets (soldiers, archers, or enemies)
+    for (const target of targets) {
+      if (this.x > target.x - target.width / 2 && 
+          this.x < target.x + target.width / 2 &&
+          Math.abs(this.y - target.y) < target.height / 2) {
+        target.takeDamage(this.damage);
         this.active = false;
         break;
       }
     }
 
-    // Check collision with enemy base
-    if (this.active && enemyBase && 
-        this.x > enemyBase.x - enemyBase.width / 2 &&
-        Math.abs(this.y - enemyBase.y) < enemyBase.height / 2) {
-      enemyBase.health = Math.max(0, enemyBase.health - this.damage);
+    // Check collision with target base
+    if (this.active && targetBase && 
+        ((this.team === 'player' && this.x > targetBase.x - targetBase.width / 2) ||
+         (this.team === 'enemy' && this.x < targetBase.x + targetBase.width / 2)) &&
+        Math.abs(this.y - targetBase.y) < targetBase.height / 2) {
+      targetBase.health = Math.max(0, targetBase.health - this.damage);
       this.active = false;
     }
 
     // Deactivate if offscreen
-    if (this.x > window.innerWidth + 100) {
+    if (this.x > window.innerWidth + 100 || this.x < -100) {
       this.active = false;
     }
   }
@@ -45,11 +47,12 @@ export class Arrow {
     ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
     
     // Arrow head
-    ctx.fillStyle = '#7f8c8d';
+    ctx.fillStyle = this.team === 'player' ? '#7f8c8d' : '#e74c3c';
     ctx.beginPath();
-    ctx.moveTo(drawX + this.width / 2, drawY);
-    ctx.lineTo(drawX + this.width / 2 - 5, drawY - 4);
-    ctx.lineTo(drawX + this.width / 2 - 5, drawY + 4);
+    const headDir = this.team === 'player' ? 1 : -1;
+    ctx.moveTo(drawX + (this.width / 2) * headDir, drawY);
+    ctx.lineTo(drawX + (this.width / 2 - 5) * headDir, drawY - 4);
+    ctx.lineTo(drawX + (this.width / 2 - 5) * headDir, drawY + 4);
     ctx.fill();
     ctx.closePath();
   }

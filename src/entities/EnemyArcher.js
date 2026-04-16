@@ -1,72 +1,71 @@
 import { Arrow } from './Arrow.js';
 
-export class Archer {
-  constructor(yOffset) {
+export class EnemyArcher {
+  constructor(x, yOffset) {
     this.width = 25;
     this.height = 40;
-    this.x = 0; // Starts at base position set by main.js
+    this.x = x;
     this.y = yOffset;
-    this.color = '#27ae60'; // Green theme for archers
-    this.speed = 1.8;
+    this.color = '#c0392b'; // Dark red for enemy archers
+    this.speed = 1.2; // Slightly slower
     
     // Health and Combat
-    this.health = 60; // Lower than soldiers
-    this.maxHealth = 60;
-    this.attackDamage = 15;
-    this.attackDelay = 1500; // Slower than melee
+    this.health = 50;
+    this.maxHealth = 50;
+    this.attackDamage = 8;
+    this.attackDelay = 1800; // Slower attack rate
     this.lastAttack = 0;
-    this.range = 350;
+    this.range = 300;
   }
 
   takeDamage(amount) {
     this.health -= amount;
   }
 
-  update(allArchers, allEnemies, enemyBase, arrows) {
+  update(allEnemies, allPlayers, playerBase, arrows) {
     if (this.health <= 0) return;
 
     let canMove = true;
     const padding = 20;
 
-    // 1. Check for targets in range
+    // 1. Check for player units in range
     let targetX = -1;
-    
-    // Check enemies first
-    for (const enemy of allEnemies) {
-      const dist = enemy.x - this.x;
+    for (const playerUnit of allPlayers) {
+      const dist = this.x - playerUnit.x;
+      // Enemy is on the right, player is on the left
       if (dist > 0 && dist < this.range) {
-        targetX = enemy.x;
+        targetX = playerUnit.x;
         canMove = false;
         break;
       }
     }
 
-    // Check enemy base if no enemies in range
-    if (canMove && enemyBase && enemyBase.x - this.x < this.range) {
-      targetX = enemyBase.x;
+    // 2. Check for player base
+    if (canMove && playerBase && this.x - playerBase.x < this.range) {
+      targetX = playerBase.x;
       canMove = false;
     }
 
     if (targetX !== -1) {
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
-        // Fire an arrow
-        const newArrow = new Arrow(this.x + 10, this.y, this.attackDamage, 'player');
+        // Fire an arrow to the left
+        const newArrow = new Arrow(this.x - 10, this.y, this.attackDamage, 'enemy');
         arrows.push(newArrow);
         this.lastAttack = now;
       }
     } else {
-      // 2. Normal movement collision with other archers
-      for (const other of allArchers) {
+      // 3. Normal movement collision with other enemies
+      for (const other of allEnemies) {
         if (other === this) continue;
-        if (other.x > this.x && other.x - this.x < this.width + padding) {
+        if (other.x < this.x && this.x - other.x < this.width + padding) {
           canMove = false;
           break;
         }
       }
 
       if (canMove) {
-        this.x += this.speed;
+        this.x -= this.speed;
       }
     }
   }
@@ -83,17 +82,17 @@ export class Archer {
     ctx.fillStyle = '#2ecc71';
     ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth * (this.health / this.maxHealth), barHeight);
 
-    // Draw archer body
+    // Draw enemy archer body
     ctx.beginPath();
     ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, 5);
     ctx.fillStyle = this.color;
     ctx.fill();
     
-    // Draw bow visually
-    ctx.strokeStyle = '#8b4513';
+    // Draw bow visually (flipped for enemy)
+    ctx.strokeStyle = '#5d2906';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(drawX + 10, drawY, 15, -Math.PI/2, Math.PI/2);
+    ctx.arc(drawX - 10, drawY, 15, Math.PI/2, -Math.PI/2);
     ctx.stroke();
     ctx.closePath();
   }
