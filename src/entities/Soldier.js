@@ -29,9 +29,17 @@ export class Soldier {
     let canMove = true;
     const padding = 10;
     const attackRange = 40;
-    const detectionRange = 250; // How far to look for enemies in other lanes
+    const detectionRange = 250;
+    const allTeammates = allSoldiers.concat(allArchers);
 
-    // 1. Find the absolute closest enemy horizontally (to decide engagement)
+    // 1. Morale Boost (Group Marching)
+    let currentSpeed = this.speed;
+    const isNearTeammate = allTeammates.some(other => other !== this && Math.abs(other.x - this.x) < 100);
+    if (isNearTeammate) {
+      currentSpeed *= 1.15;
+    }
+
+    // 2. Find the absolute closest enemy horizontally (any lane)
     let closestEnemy = null;
     let minXDist = Infinity;
 
@@ -45,12 +53,27 @@ export class Soldier {
       }
     }
 
-    // 2. Decision Logic
+    // 3. Bodyguard Logic (Interception)
+    // If no enemy in current lane, check if an archer nearby needs protection
+    if (!closestEnemy || closestEnemy.lane !== this.lane) {
+      for (const archer of allArchers) {
+        if (Math.abs(archer.lane - this.lane) === 1 && Math.abs(archer.x - this.x) < 100) {
+          // Check if this archer has an enemy close to them
+          const archerThreat = allEnemies.find(e => e.lane === archer.lane && Math.abs(e.x - archer.x) < 150);
+          if (archerThreat && Date.now() - this.lastLaneSwitch > 500) {
+            this.lane = archer.lane;
+            this.y = LANE_Y[this.lane];
+            this.lastLaneSwitch = Date.now();
+            break;
+          }
+        }
+      }
+    }
+
+    // 4. Decision Logic (Combat & Targeted Lane Switch)
     if (closestEnemy) {
       if (closestEnemy.lane === this.lane) {
-        // Enemy is in our lane!
         if (minXDist < attackRange) {
-          // In attack range
           const now = Date.now();
           if (now - this.lastAttack > this.attackDelay) {
             closestEnemy.takeDamage(this.attackDamage);
@@ -59,17 +82,16 @@ export class Soldier {
           canMove = false;
         }
       } else {
-        // Enemy is in another lane! Switch to it to engage
+        // Target is in another lane, switch to it!
         if (Date.now() - this.lastLaneSwitch > 500) {
           this.lane = closestEnemy.lane;
           this.y = LANE_Y[this.lane];
           this.lastLaneSwitch = Date.now();
-          // We won't set canMove=false here so they can keep moving towards the enemy in the new lane
         }
       }
     }
 
-    // 3. Base detection (always hits base if close enough, logic is fixed)
+    // 5. Base detection
     if (canMove && enemyBase && this.x > enemyBase.x - enemyBase.width / 2 - attackRange) {
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
@@ -79,11 +101,9 @@ export class Soldier {
       canMove = false;
     }
 
-    // 4. Teammate collision and dynamic lane avoiding (if not in combat)
+    // 6. Teammate collision and dynamic lane avoiding
     if (canMove) {
       let blockedByTeammate = false;
-      const allTeammates = allSoldiers.concat(allArchers);
-      
       for (const other of allTeammates) {
         if (other === this || other.lane !== this.lane) continue;
         if (other.x > this.x && other.x - this.x < this.width + padding) {
@@ -94,7 +114,6 @@ export class Soldier {
       }
 
       if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 500) {
-        // Only avoid if NOT following an enemy (closestEnemy check above covers most cases)
         const candidateLanes = [];
         if (this.lane > 0) candidateLanes.push(this.lane - 1);
         if (this.lane < LANE_Y.length - 1) candidateLanes.push(this.lane + 1);
@@ -119,7 +138,7 @@ export class Soldier {
       }
 
       if (canMove) {
-        this.x += this.speed;
+        this.x += currentSpeed;
       }
     }
   }

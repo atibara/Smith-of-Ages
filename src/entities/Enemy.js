@@ -31,7 +31,14 @@ export class Enemy {
     const attackRange = 40;
     const detectionRange = 250;
 
-    // 1. Find the absolute closest player unit horizontally
+    // 1. Morale Boost (Group Marching)
+    let currentSpeed = this.speed;
+    const isNearTeammate = allEnemies.some(other => other !== this && Math.abs(other.x - this.x) < 100);
+    if (isNearTeammate) {
+      currentSpeed *= 1.15;
+    }
+
+    // 2. Find the absolute closest player unit horizontally
     let closestPlayer = null;
     let minXDist = Infinity;
 
@@ -45,7 +52,23 @@ export class Enemy {
       }
     }
 
-    // 2. Decision Logic
+    // 3. Bodyguard Logic (Interception for EnemyArchers)
+    if (!closestPlayer || closestPlayer.lane !== this.lane) {
+      for (const other of allEnemies) {
+        // Look for allied archers nearby in adjacent lanes
+        if (other.constructor.name === 'EnemyArcher' && Math.abs(other.lane - this.lane) === 1 && Math.abs(other.x - this.x) < 100) {
+          const threat = allPlayers.find(p => p.lane === other.lane && Math.abs(p.x - other.x) < 150);
+          if (threat && Date.now() - this.lastLaneSwitch > 500) {
+            this.lane = other.lane;
+            this.y = LANE_Y[this.lane];
+            this.lastLaneSwitch = Date.now();
+            break;
+          }
+        }
+      }
+    }
+
+    // 4. Decision Logic (Combat & Targeted Lane Switch)
     if (closestPlayer) {
       if (closestPlayer.lane === this.lane) {
         if (minXDist < attackRange) {
@@ -66,7 +89,7 @@ export class Enemy {
       }
     }
 
-    // 3. Base detection (always hits base if close enough)
+    // 5. Base detection (always hits base if close enough)
     if (canMove && upperBase && this.x < upperBase.x + upperBase.width / 2 + attackRange) {
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
@@ -76,7 +99,7 @@ export class Enemy {
       canMove = false;
     }
 
-    // 4. Teammate collision and dynamic lane avoiding
+    // 6. Teammate collision and dynamic lane avoiding
     if (canMove) {
       let blockedByTeammate = false;
       for (const other of allEnemies) {
@@ -113,7 +136,7 @@ export class Enemy {
       }
 
       if (canMove) {
-        this.x -= this.speed;
+        this.x -= currentSpeed;
       }
     }
   }

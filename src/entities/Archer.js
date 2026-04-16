@@ -30,8 +30,16 @@ export class Archer {
 
     let canMove = true;
     const padding = 20;
+    const allTeammates = allArchers.concat(allSoldiers);
 
-    // 1. Find the absolute closest enemy horizontally (any lane)
+    // 1. Morale Boost (Group Marching)
+    let currentSpeed = this.speed;
+    const isNearTeammate = allTeammates.some(other => other !== this && Math.abs(other.x - this.x) < 100);
+    if (isNearTeammate) {
+      currentSpeed *= 1.15;
+    }
+
+    // 2. Find the absolute closest enemy horizontally (any lane)
     let closestEnemy = null;
     let minXDist = Infinity;
 
@@ -45,7 +53,7 @@ export class Archer {
       }
     }
 
-    // 2. Engagement Logic
+    // 3. Engagement & Kiting Logic
     let targetX = -1;
     let targetLane = this.lane;
     let targetY = this.y;
@@ -55,9 +63,23 @@ export class Archer {
       targetLane = closestEnemy.lane;
       targetY = LANE_Y[targetLane];
       canMove = false;
+
+      // KITE: If enemy is too close, try to back up
+      if (minXDist < 120 && this.x > 100) { // Safety buffer from base at 80
+        let backPathClear = true;
+        for (const other of allTeammates) {
+          if (other.lane === this.lane && other.x < this.x && this.x - other.x < this.width + padding) {
+            backPathClear = false;
+            break;
+          }
+        }
+        if (backPathClear) {
+          this.x -= currentSpeed * 0.5; // Backpedal
+        }
+      }
     } else if (enemyBase && enemyBase.x - this.x < this.range) {
       targetX = enemyBase.x;
-      targetLane = this.lane; // Base can be hit from current lane
+      targetLane = this.lane;
       targetY = this.y;
       canMove = false;
     }
@@ -65,16 +87,13 @@ export class Archer {
     if (targetX !== -1) {
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
-        // Fire an arrow at the TARGET'S lane and Y
         const newArrow = new Arrow(this.x + 10, targetY, this.attackDamage, 'player', targetLane);
         arrows.push(newArrow);
         this.lastAttack = now;
       }
     } else {
-      // 3. Normal movement collision with other UNITS in the SAME LANE
+      // 4. Normal movement collision with other UNITS in the SAME LANE
       let blockedByTeammate = false;
-      const allTeammates = allArchers.concat(allSoldiers);
-      
       for (const other of allTeammates) {
         if (other === this || other.lane !== this.lane) continue;
         if (other.x > this.x && other.x - this.x < this.width + padding) {
@@ -84,7 +103,7 @@ export class Archer {
         }
       }
 
-      // 4. Dynamic Lane Switching if blocked by a teammate
+      // 5. Dynamic Lane Switching if blocked by a teammate
       if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 500) {
         const candidateLanes = [];
         if (this.lane > 0) candidateLanes.push(this.lane - 1);
@@ -110,7 +129,7 @@ export class Archer {
       }
 
       if (canMove) {
-        this.x += this.speed;
+        this.x += currentSpeed;
       }
     }
   }
