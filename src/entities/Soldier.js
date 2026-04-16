@@ -8,8 +8,23 @@ export class Soldier {
     this.speed = 2;
   }
 
-  update() {
-    this.x += this.speed;
+  update(allSoldiers) {
+    let canMove = true;
+    const padding = 10; // 10px distance between soldiers
+
+    for (const other of allSoldiers) {
+      if (other === this) continue;
+      
+      // Since they only move right, check if 'other' is in front of 'this'
+      if (other.x > this.x && other.x - this.x < this.width + padding) {
+        canMove = false;
+        break;
+      }
+    }
+
+    if (canMove) {
+      this.x += this.speed;
+    }
   }
 
   draw(ctx, camera) {

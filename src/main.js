@@ -3,6 +3,7 @@ import { Smithy } from './entities/Smithy.js';
 import { Soldier } from './entities/Soldier.js';
 import { IronMine } from './entities/IronMine.js';
 import { Armory } from './entities/Armory.js';
+import { UpperBase } from './entities/UpperBase.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -13,6 +14,7 @@ const player = new Player(400, 300);
 const smithy = new Smithy(400, 300);
 const mine = new IronMine(0, 0);
 const armory = new Armory(0, 0);
+const upperBase = new UpperBase(0, 0);
 const soldiers = [];
 const camera = { x: 0, y: 0 };
 const GRID_SIZE = 100;
@@ -32,6 +34,9 @@ function resize() {
   
   armory.x = width - 150;
   armory.y = UPPER_WORLD_HEIGHT + 60;
+
+  upperBase.x = 80;
+  upperBase.y = UPPER_WORLD_HEIGHT / 2;
 }
 
 window.addEventListener('resize', resize);
@@ -62,7 +67,10 @@ window.addEventListener('keydown', (e) => {
       const swordIndex = player.inventory.indexOf('sword');
       if (swordIndex !== -1) {
         player.inventory.splice(swordIndex, 1);
-        soldiers.push(new Soldier(UPPER_WORLD_HEIGHT / 2));
+        const newSoldier = new Soldier(UPPER_WORLD_HEIGHT / 2);
+        // Spawn "inside" the base
+        newSoldier.x = upperBase.x; 
+        soldiers.push(newSoldier);
       }
     }
   }
@@ -113,7 +121,7 @@ function update() {
   player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height });
   
   for (let i = soldiers.length - 1; i >= 0; i--) {
-    soldiers[i].update();
+    soldiers[i].update(soldiers);
     if (soldiers[i].x > width + 50) {
       soldiers.splice(i, 1);
     }
@@ -139,6 +147,7 @@ function render() {
   ctx.stroke();
   
   drawGrid();
+  upperBase.draw(ctx, camera);
   mine.draw(ctx, camera);
   smithy.draw(ctx, camera);
   armory.draw(ctx, camera);
