@@ -1,6 +1,8 @@
 import { Player } from './entities/Player.js';
 import { Smithy } from './entities/Smithy.js';
 import { Soldier } from './entities/Soldier.js';
+import { IronMine } from './entities/IronMine.js';
+import { Armory } from './entities/Armory.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -9,6 +11,8 @@ let width, height;
 const UPPER_WORLD_HEIGHT = 150;
 const player = new Player(400, 300);
 const smithy = new Smithy(400, 300);
+const mine = new IronMine(0, 0);
+const armory = new Armory(0, 0);
 const soldiers = [];
 const camera = { x: 0, y: 0 };
 const GRID_SIZE = 100;
@@ -18,8 +22,16 @@ function resize() {
   height = window.innerHeight;
   canvas.width = width;
   canvas.height = height;
+  
+  // Position buildings
   smithy.x = width / 2;
   smithy.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2;
+  
+  mine.x = 100;
+  mine.y = height - 100;
+  
+  armory.x = width - 150;
+  armory.y = UPPER_WORLD_HEIGHT + 60;
 }
 
 window.addEventListener('resize', resize);
@@ -32,8 +44,26 @@ player.targetY = player.y;
 // Input handling - keyboard
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') {
-    if (smithy.isPlayerNear(player)) {
-      soldiers.push(new Soldier(UPPER_WORLD_HEIGHT / 2));
+    // 1. Interaction with Mine (Gather Iron)
+    if (mine.isPlayerNear(player)) {
+      if (player.inventory.length < player.maxInventory) {
+        player.inventory.push('iron');
+      }
+    }
+    // 2. Interaction with Smithy (Forge Iron -> Sword)
+    else if (smithy.isPlayerNear(player)) {
+      const ironIndex = player.inventory.indexOf('iron');
+      if (ironIndex !== -1) {
+        player.inventory[ironIndex] = 'sword';
+      }
+    }
+    // 3. Interaction with Armory (Deliver Sword -> Spawn Soldier)
+    else if (armory.isPlayerNear(player)) {
+      const swordIndex = player.inventory.indexOf('sword');
+      if (swordIndex !== -1) {
+        player.inventory.splice(swordIndex, 1);
+        soldiers.push(new Soldier(UPPER_WORLD_HEIGHT / 2));
+      }
     }
   }
 });
@@ -109,15 +139,35 @@ function render() {
   ctx.stroke();
   
   drawGrid();
+  mine.draw(ctx, camera);
   smithy.draw(ctx, camera);
+  armory.draw(ctx, camera);
   player.draw(ctx, camera);
   soldiers.forEach(s => s.draw(ctx, camera));
   
-  if (smithy.isPlayerNear(player)) {
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('Press SPACE to forge', smithy.x - camera.x, smithy.y - camera.y + smithy.height / 2 + 20);
+  // Interaction Prompts
+  ctx.fillStyle = '#fff';
+  ctx.font = '16px monospace';
+  ctx.textAlign = 'center';
+
+  if (mine.isPlayerNear(player)) {
+    if (player.inventory.length < player.maxInventory) {
+      ctx.fillText('Press SPACE to mine iron', mine.x, mine.y + mine.height / 2 + 20);
+    } else {
+      ctx.fillText('Inventory Full!', mine.x, mine.y + mine.height / 2 + 20);
+    }
+  } else if (smithy.isPlayerNear(player)) {
+    if (player.inventory.includes('iron')) {
+      ctx.fillText('Press SPACE to forge sword', smithy.x, smithy.y + smithy.height / 2 + 20);
+    } else {
+      ctx.fillText('Need Iron!', smithy.x, smithy.y + smithy.height / 2 + 20);
+    }
+  } else if (armory.isPlayerNear(player)) {
+    if (player.inventory.includes('sword')) {
+      ctx.fillText('Press SPACE to deliver sword', armory.x, armory.y + armory.height / 2 + 20);
+    } else {
+      ctx.fillText('Need Sword!', armory.x, armory.y + armory.height / 2 + 20);
+    }
   }
   
   requestAnimationFrame(gameLoop);

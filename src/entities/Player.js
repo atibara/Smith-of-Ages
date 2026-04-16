@@ -11,6 +11,9 @@ export class Player {
     this.targetX = x;
     this.targetY = y;
     this.isMoving = false;
+    
+    this.inventory = [];
+    this.maxInventory = 5;
   }
 
   setTarget(x, y) {
@@ -52,5 +55,30 @@ export class Player {
     
     // Reset shadow for subsequent draws
     ctx.shadowBlur = 0;
+    
+    // Draw inventory stack (rendered on top of player's head)
+    this.inventory.forEach((item, index) => {
+      // Start slightly above the player head and go up
+      const stackHeightOffset = this.height / 2 + 15 + index * 20; 
+      const drawX = this.x - camera.x;
+      const drawY = this.y - camera.y - stackHeightOffset;
+
+      ctx.beginPath();
+      if (item === 'iron') {
+        ctx.fillStyle = '#95a5a6'; // Iron color
+        ctx.fillRect(drawX - 10, drawY - 10, 20, 20);
+        ctx.strokeStyle = '#34495e';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(drawX - 10, drawY - 10, 20, 20);
+      } else if (item === 'sword') {
+        // Draw a tiny sword
+        ctx.fillStyle = '#bdc3c7'; // blade
+        ctx.fillRect(drawX - 2, drawY - 12, 4, 18);
+        ctx.fillStyle = '#c0392b'; // handle
+        ctx.fillRect(drawX - 6, drawY + 6, 12, 3);
+        ctx.fillRect(drawX - 2, drawY + 6, 4, 6);
+      }
+      ctx.closePath();
+    });
   }
 }
