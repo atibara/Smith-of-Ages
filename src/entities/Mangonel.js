@@ -1,3 +1,6 @@
+import { LANE_Y } from '../Constants.js';
+import { Stone } from './Stone.js';
+
 export class Mangonel {
   constructor(x, y, lane = 1) {
     this.width = 60;
@@ -21,6 +24,7 @@ export class Mangonel {
     this.range = 550;
     this.minRange = 150;
     this.lastLaneSwitch = 0;
+    this.id = Math.random();
   }
 
   update(allMangonels, allEnemies, enemyBase, stones, player, allOthers = []) {
@@ -72,7 +76,10 @@ export class Mangonel {
         targetX = closestEnemy.x;
         targetLane = closestEnemy.lane;
         targetY = LANE_Y[targetLane];
-        canMove = false;
+        // ONLY stop if the enemy is in our lane OR if we are close to our minimum range
+        if (targetLane === this.lane || minXDist < this.minRange + 50) {
+          canMove = false;
+        }
       } else if (enemyBase && enemyBase.x - this.x < this.range && enemyBase.x - this.x > this.minRange) {
         targetX = enemyBase.x;
         targetLane = this.lane;
@@ -87,8 +94,10 @@ export class Mangonel {
           stones.push(newStone);
           this.lastAttack = now;
         }
-      } else {
-        // Collision and Movement
+      }
+      
+      // Normal movement collision logic - always check this if not explicitly shooting/stopped
+      if (canMove) {
         let blockedByTeammate = false;
         for (const other of allTeammates) {
           if (other === this || other.lane !== this.lane) continue;
@@ -114,7 +123,6 @@ export class Mangonel {
             }
             if (laneClear) {
               this.lane = nextLane;
-              this.y = LANE_Y[nextLane];
               this.lastLaneSwitch = Date.now();
               canMove = true;
               break;
@@ -124,6 +132,29 @@ export class Mangonel {
 
         if (canMove) {
           this.x += currentSpeed;
+        }
+      }
+
+      // Anti-overlap logic for same lane
+      for (const other of allTeammates) {
+        if (other === this || other.lane !== this.lane) continue;
+        let dist = this.x - other.x;
+        if (dist === 0 && this.id && other.id) {
+           dist = this.id > other.id ? 0.1 : -0.1;
+        }
+        if (Math.abs(dist) < this.width + 5) {
+           this.x += dist > 0 ? 0.5 : -0.5;
+        }
+      }
+
+      // Smooth lane transition
+      const targetLaneY = LANE_Y[this.lane];
+      if (this.y !== targetLaneY) {
+        const diff = targetLaneY - this.y;
+        if (Math.abs(diff) <= this.speed * 2) {
+          this.y = targetLaneY;
+        } else {
+          this.y += Math.sign(diff) * this.speed * 2;
         }
       }
     }

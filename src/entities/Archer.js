@@ -2,10 +2,10 @@ import { Arrow } from './Arrow.js';
 import { LANE_Y } from '../Constants.js';
 
 export class Archer {
-  constructor(yOffset, lane = 1) {
+  constructor(x, yOffset, lane = 1) {
     this.width = 25;
     this.height = 40;
-    this.x = 0; // Starts at base position set by main.js
+    this.x = x;
     this.y = yOffset;
     this.lane = lane; // 0, 1, 2
     this.color = '#27ae60'; // Green theme for archers
@@ -19,18 +19,19 @@ export class Archer {
     this.lastAttack = 0;
     this.range = 350;
     this.lastLaneSwitch = 0;
+    this.id = Math.random();
   }
 
   takeDamage(amount) {
     this.health -= amount;
   }
 
-  update(allArchers, allEnemies, enemyBase, arrows, allSoldiers = []) {
+  update(allArchers, allEnemies, enemyBase, arrows, allSoldiers = [], mangonels = []) {
     if (this.health <= 0) return;
 
     let canMove = true;
-    const padding = 20;
-    const allTeammates = allArchers.concat(allSoldiers);
+    const padding = 25; // Archers need more space
+    const allTeammates = [...allArchers, ...allSoldiers, ...mangonels.filter(m => m.state === 'COMBAT')];
 
     // 1. Morale Boost (Group Marching)
     let currentSpeed = this.speed;
@@ -62,13 +63,18 @@ export class Archer {
       targetX = closestEnemy.x;
       targetLane = closestEnemy.lane;
       targetY = LANE_Y[targetLane];
-      canMove = false;
+      
+      // ONLY stop if the enemy is in our lane OR if we are close to our maximum range
+      // This prevents archers from blocking lanes needlessly
+      if (targetLane === this.lane || minXDist < 150) {
+        canMove = false;
+      }
 
       // KITE: If enemy is too close, try to back up
       if (minXDist < 120 && this.x > 100) { // Safety buffer from base at 80
         let backPathClear = true;
         for (const other of allTeammates) {
-          if (other.lane === this.lane && other.x < this.x && this.x - other.x < this.width + padding) {
+          if (other.lane === this.lane && other.x < this.x && this.x - other.x < this.width + 10) {
             backPathClear = false;
             break;
           }
@@ -91,8 +97,10 @@ export class Archer {
         arrows.push(newArrow);
         this.lastAttack = now;
       }
-    } else {
-      // 4. Normal movement collision with other UNITS in the SAME LANE
+    } 
+    
+    // Normal movement collision logic - always check this if not explicitly shooting/stopped
+    if (canMove) {
       let blockedByTeammate = false;
       for (const other of allTeammates) {
         if (other === this || other.lane !== this.lane) continue;
@@ -104,7 +112,7 @@ export class Archer {
       }
 
       // 5. Dynamic Lane Switching if blocked by a teammate
-      if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 500) {
+      if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 800) {
         const candidateLanes = [];
         if (this.lane > 0) candidateLanes.push(this.lane - 1);
         if (this.lane < LANE_Y.length - 1) candidateLanes.push(this.lane + 1);
@@ -120,7 +128,6 @@ export class Archer {
 
           if (laneClear) {
             this.lane = nextLane;
-            this.y = LANE_Y[nextLane];
             this.lastLaneSwitch = Date.now();
             canMove = true;
             break;
@@ -130,6 +137,29 @@ export class Archer {
 
       if (canMove) {
         this.x += currentSpeed;
+      }
+    }
+
+    // Anti-overlap logic for same lane
+    for (const other of allTeammates) {
+      if (other === this || other.lane !== this.lane) continue;
+      let dist = this.x - other.x;
+      if (dist === 0 && this.id && other.id) {
+         dist = this.id > other.id ? 0.1 : -0.1;
+      }
+      if (Math.abs(dist) < this.width + 5) {
+         this.x += dist > 0 ? 0.5 : -0.5;
+      }
+    }
+
+    // Smooth lane transition
+    const targetLaneY = LANE_Y[this.lane];
+    if (this.y !== targetLaneY) {
+      const diff = targetLaneY - this.y;
+      if (Math.abs(diff) <= this.speed * 2) {
+        this.y = targetLaneY;
+      } else {
+        this.y += Math.sign(diff) * this.speed * 2;
       }
     }
   }

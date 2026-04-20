@@ -19,6 +19,7 @@ export class EnemyArcher {
     this.lastAttack = 0;
     this.range = 300;
     this.lastLaneSwitch = 0;
+    this.id = Math.random();
   }
 
   takeDamage(amount) {
@@ -119,7 +120,6 @@ export class EnemyArcher {
 
           if (laneClear) {
             this.lane = nextLane;
-            this.y = LANE_Y[nextLane];
             this.lastLaneSwitch = Date.now();
             canMove = true;
             break;
@@ -129,6 +129,29 @@ export class EnemyArcher {
 
       if (canMove) {
         this.x -= currentSpeed;
+      }
+    }
+
+    // Anti-overlap logic for same lane
+    for (const other of allEnemies) {
+      if (other === this || other.lane !== this.lane) continue;
+      let dist = this.x - other.x;
+      if (dist === 0 && this.id && other.id) {
+         dist = this.id > other.id ? 0.1 : -0.1;
+      }
+      if (Math.abs(dist) < this.width + 5) {
+         this.x += dist > 0 ? 0.5 : -0.5;
+      }
+    }
+
+    // Smooth lane transition
+    const targetLaneY = LANE_Y[this.lane];
+    if (this.y !== targetLaneY) {
+      const diff = targetLaneY - this.y;
+      if (Math.abs(diff) <= this.speed * 2) {
+        this.y = targetLaneY;
+      } else {
+        this.y += Math.sign(diff) * this.speed * 2;
       }
     }
   }

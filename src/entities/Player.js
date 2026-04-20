@@ -14,6 +14,14 @@ export class Player {
     
     this.inventory = [];
     this.maxInventory = 5;
+
+    // --- SPRITE ANIMATION ---
+    this.image = new Image();
+    this.image.src = 'assets/player.png'; // Resmin kaydedileceği yol
+    this.currentFrame = 0;
+    this.currentRow = 0;
+    this.animationSpeed = 100; // Çerçeve geçiş hızı (ms)
+    this.lastAnimTime = Date.now();
   }
 
   setTarget(x, y) {
@@ -45,13 +53,64 @@ export class Player {
   }
 
   draw(ctx, camera) {
-    ctx.beginPath();
-    ctx.roundRect(this.x - camera.x - this.width / 2, this.y - camera.y - this.height / 2, this.width, this.height, this.radius);
-    ctx.fillStyle = this.color;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = this.color;
-    ctx.fill();
-    ctx.closePath();
+    const drawX = this.x - camera.x;
+    const drawY = this.y - camera.y;
+
+    if (this.image.complete && this.image.naturalWidth !== 0) {
+      // SPRITE DRAWING
+      // Gönderdiğin resim yaklaşık 7 sütun ve 4-5 satırdan oluşuyor gibi duruyor.
+      // Bu sayıları resmin tam yapısına göre değiştirebilirsin.
+      const cols = 7;  
+      const rows = 4; 
+      const frameWidth = this.image.naturalWidth / cols;
+      const frameHeight = this.image.naturalHeight / rows;
+
+      if (this.isMoving) {
+        const now = Date.now();
+        if (now - this.lastAnimTime > this.animationSpeed) {
+          // İlk kare genellikle durma (idle) karesidir, yürüyüş 1'den başlar
+          this.currentFrame = ((this.currentFrame + 1) % (cols - 1)) + 1; 
+          this.lastAnimTime = now;
+        }
+        
+        // Hareket açısına göre satır belirleme
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        
+        if (Math.abs(dx) > Math.abs(dy)) {
+          this.currentRow = dx > 0 ? 3 : 2; // 3. satır sağa, 2. satır sola yürüme
+        } else {
+          this.currentRow = dy > 0 ? 1 : 2; // 1. satır aşağı, 2. satır yukarı/sola
+        }
+      } else {
+        this.currentFrame = 0; // Durduğunda ilk frame
+        this.currentRow = 0;   // Durduğunda ilk satır
+      }
+      
+      const renderWidth = this.width; // Ekranda görünme boyutu
+      const renderHeight = this.height;
+
+      ctx.drawImage(
+        this.image,
+        this.currentFrame * frameWidth,
+        this.currentRow * frameHeight,
+        frameWidth,
+        frameHeight,
+        drawX - renderWidth / 2,
+        drawY - renderHeight / 2,
+        renderWidth,
+        renderHeight
+      );
+    } else {
+      // FALLBACK: Resim yüklenmediyse eski turuncu oyuncuyu çiz
+      ctx.beginPath();
+      ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, this.radius);
+      ctx.fillStyle = this.color;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = this.color;
+      ctx.fill();
+      ctx.closePath();
+    }
     
     // Reset shadow for subsequent draws
     ctx.shadowBlur = 0;

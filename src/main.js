@@ -155,10 +155,10 @@ window.addEventListener('keydown', (e) => {
         
         if (swordIndex !== -1) {
           player.inventory.splice(swordIndex, 1);
-          soldiers.push(new Soldier(LANE_Y[spawnLane], spawnLane));
+          soldiers.push(new Soldier(upperBase.x, LANE_Y[spawnLane], spawnLane));
         } else if (bowIndex !== -1) {
           player.inventory.splice(bowIndex, 1);
-          archers.push(new Archer(LANE_Y[spawnLane], spawnLane));
+          archers.push(new Archer(upperBase.x, LANE_Y[spawnLane], spawnLane));
         }
 
         if (targetLane === -1) {
@@ -256,13 +256,13 @@ function update() {
 
   // Update soldiers
   for (let i = soldiers.length - 1; i >= 0; i--) {
-    soldiers[i].update(soldiers, enemies, enemyBase, archers);
+    soldiers[i].update(soldiers, enemies, enemyBase, archers, mangonels);
     if (soldiers[i].health <= 0) soldiers.splice(i, 1);
   }
 
   // Update archers
   for (let i = archers.length - 1; i >= 0; i--) {
-    archers[i].update(archers, enemies, enemyBase, arrows, soldiers);
+    archers[i].update(archers, enemies, enemyBase, arrows, soldiers, mangonels);
     if (archers[i].health <= 0) archers.splice(i, 1);
   }
 

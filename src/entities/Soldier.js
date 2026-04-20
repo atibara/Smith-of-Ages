@@ -1,10 +1,10 @@
 import { LANE_Y } from '../Constants.js';
 
 export class Soldier {
-  constructor(yOffset, lane = 1) {
+  constructor(x, yOffset, lane = 1) {
     this.width = 25;
     this.height = 40;
-    this.x = -this.width; // Start slightly offscreen to the left
+    this.x = x;
     this.y = yOffset; // Vertical center of the upper world path
     this.lane = lane; // 0 (top), 1 (middle), 2 (bottom)
     this.color = '#3498db'; // Look like blue soldiers
@@ -14,23 +14,24 @@ export class Soldier {
     this.health = 100;
     this.maxHealth = 100;
     this.attackDamage = 10;
-    this.attackDelay = 1000; // 1 second between attacks
+    this.attackDelay = 1000;
     this.lastAttack = 0;
     this.lastLaneSwitch = 0;
+    this.id = Math.random();
   }
 
   takeDamage(amount) {
     this.health -= amount;
   }
 
-  update(allSoldiers, allEnemies, enemyBase, allArchers = []) {
+  update(allSoldiers, allEnemies, enemyBase, allArchers = [], mangonels = []) {
     if (this.health <= 0) return;
 
     let canMove = true;
-    const padding = 10;
+    const padding = 15; // Increased padding for better visual spacing
     const attackRange = 40;
     const detectionRange = 250;
-    const allTeammates = allSoldiers.concat(allArchers);
+    const allTeammates = [...allSoldiers, ...allArchers, ...mangonels.filter(m => m.state === 'COMBAT')];
 
     // 1. Morale Boost (Group Marching)
     let currentSpeed = this.speed;
@@ -60,9 +61,8 @@ export class Soldier {
         if (Math.abs(archer.lane - this.lane) === 1 && Math.abs(archer.x - this.x) < 100) {
           // Check if this archer has an enemy close to them
           const archerThreat = allEnemies.find(e => e.lane === archer.lane && Math.abs(e.x - archer.x) < 150);
-          if (archerThreat && Date.now() - this.lastLaneSwitch > 500) {
+          if (archerThreat && Date.now() - this.lastLaneSwitch > 800) {
             this.lane = archer.lane;
-            this.y = LANE_Y[this.lane];
             this.lastLaneSwitch = Date.now();
             break;
           }
@@ -83,9 +83,8 @@ export class Soldier {
         }
       } else {
         // Target is in another lane, switch to it!
-        if (Date.now() - this.lastLaneSwitch > 500) {
+        if (Date.now() - this.lastLaneSwitch > 800) {
           this.lane = closestEnemy.lane;
-          this.y = LANE_Y[this.lane];
           this.lastLaneSwitch = Date.now();
         }
       }
@@ -106,7 +105,9 @@ export class Soldier {
       let blockedByTeammate = false;
       for (const other of allTeammates) {
         if (other === this || other.lane !== this.lane) continue;
-        if (other.x > this.x && other.x - this.x < this.width + padding) {
+        
+        // Only block if the other is ahead AND we are actually overlapping roughly
+        if (other.x > this.x && other.x - this.x < this.width + padding - 5) {
           canMove = false;
           blockedByTeammate = true;
           break;
@@ -129,7 +130,6 @@ export class Soldier {
 
           if (laneClear) {
             this.lane = nextLane;
-            this.y = LANE_Y[nextLane];
             this.lastLaneSwitch = Date.now();
             canMove = true;
             break;
@@ -139,6 +139,29 @@ export class Soldier {
 
       if (canMove) {
         this.x += currentSpeed;
+      }
+    }
+
+    // Anti-overlap logic for same lane
+    for (const other of allTeammates) {
+      if (other === this || other.lane !== this.lane) continue;
+      let dist = this.x - other.x;
+      if (dist === 0 && this.id && other.id) {
+         dist = this.id > other.id ? 0.1 : -0.1;
+      }
+      if (Math.abs(dist) < this.width + 5) {
+         this.x += dist > 0 ? 0.5 : -0.5;
+      }
+    }
+
+    // Smooth lane transition
+    const targetY = LANE_Y[this.lane];
+    if (this.y !== targetY) {
+      const diff = targetY - this.y;
+      if (Math.abs(diff) <= this.speed * 2) {
+        this.y = targetY;
+      } else {
+        this.y += Math.sign(diff) * this.speed * 2;
       }
     }
   }

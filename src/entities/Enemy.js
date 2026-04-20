@@ -14,9 +14,10 @@ export class Enemy {
     this.health = 80;
     this.maxHealth = 80;
     this.attackDamage = 8;
-    this.attackDelay = 1200; // Slightly slower than soldiers
+    this.attackDelay = 1200;
     this.lastAttack = 0;
     this.lastLaneSwitch = 0;
+    this.id = Math.random();
   }
 
   takeDamage(amount) {
@@ -60,7 +61,6 @@ export class Enemy {
           const threat = allPlayers.find(p => p.lane === other.lane && Math.abs(p.x - other.x) < 150);
           if (threat && Date.now() - this.lastLaneSwitch > 500) {
             this.lane = other.lane;
-            this.y = LANE_Y[this.lane];
             this.lastLaneSwitch = Date.now();
             break;
           }
@@ -83,7 +83,6 @@ export class Enemy {
         // Target is in another lane, switch to it!
         if (Date.now() - this.lastLaneSwitch > 500) {
           this.lane = closestPlayer.lane;
-          this.y = LANE_Y[this.lane];
           this.lastLaneSwitch = Date.now();
         }
       }
@@ -127,7 +126,6 @@ export class Enemy {
 
           if (laneClear) {
             this.lane = nextLane;
-            this.y = LANE_Y[nextLane];
             this.lastLaneSwitch = Date.now();
             canMove = true;
             break;
@@ -137,6 +135,29 @@ export class Enemy {
 
       if (canMove) {
         this.x -= currentSpeed;
+      }
+    }
+
+    // Anti-overlap logic for same lane
+    for (const other of allEnemies) {
+      if (other === this || other.lane !== this.lane) continue;
+      let dist = this.x - other.x;
+      if (dist === 0 && this.id && other.id) {
+         dist = this.id > other.id ? 0.1 : -0.1;
+      }
+      if (Math.abs(dist) < this.width + 5) {
+         this.x += dist > 0 ? 0.5 : -0.5;
+      }
+    }
+
+    // Smooth lane transition
+    const targetY = LANE_Y[this.lane];
+    if (this.y !== targetY) {
+      const diff = targetY - this.y;
+      if (Math.abs(diff) <= this.speed * 2) {
+        this.y = targetY;
+      } else {
+        this.y += Math.sign(diff) * this.speed * 2;
       }
     }
   }
