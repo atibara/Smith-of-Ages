@@ -19,9 +19,9 @@
             <h1 class="game-title">Smith of Ages</h1>
             <p class="game-subtitle">Forged in Battle</p>
             <div class="menu-buttons">
-              <button id="btn-play" class="btn-primary">Oyna</button>
-              <button id="btn-settings" class="btn-secondary">Ayarlar</button>
-              <button id="btn-exit" class="btn-danger">Çıkış</button>
+              <button id="btn-play" class="btn-primary">Play</button>
+              <button id="btn-settings" class="btn-secondary">Settings</button>
+              <button id="btn-exit" class="btn-danger">Exit</button>
             </div>
           </div>
         </div>
@@ -29,33 +29,87 @@
         <!-- Settings Menu -->
         <div id="settings-menu" class="menu-screen hidden">
           <div class="menu-content">
-            <h2>Ayarlar</h2>
+            <h2>Settings</h2>
             <div class="settings-group">
-              <label>Genel Ses</label>
+              <label>Master Volume</label>
               <input type="range" min="0" max="100" value="70">
             </div>
             <div class="settings-group">
-              <label>Zorluk Seviyesi</label>
+              <label>Difficulty</label>
               <select>
-                <option>Kolay</option>
+                <option>Easy</option>
                 <option selected>Normal</option>
-                <option>Zor</option>
+                <option>Hard</option>
               </select>
             </div>
-            <button id="btn-back-settings" class="btn-secondary mt-2">Geri Dön</button>
+            <button id="btn-back-settings" class="btn-secondary mt-2">Back</button>
           </div>
         </div>
 
         <!-- Exit Screen -->
         <div id="exit-screen" class="menu-screen hidden">
           <div class="menu-content">
-            <h2>Oynadığınız İçin Teşekkürler!</h2>
-            <p>Sekmeyi güvenle kapatabilirsiniz.</p>
-            <button id="btn-back-exit" class="btn-secondary mt-2">Ana Menüye Dön</button>
+            <h2>Thanks for Playing!</h2>
+            <p>You can safely close this tab.</p>
+            <button id="btn-back-exit" class="btn-secondary mt-2">Main Menu</button>
+          </div>
+        </div>
+
+        <!-- HUD -->
+        <div id="game-hud" class="hidden">
+          <div id="hud-bottom">
+            <div id="gold-display">
+              <span class="icon">💰</span>
+              <span id="gold-amount">0</span>
+            </div>
+            
+            <div id="base-health-container">
+              <div class="health-label">BASE HEALTH</div>
+              <div class="health-bar-wrapper">
+                <div id="base-health-bar"></div>
+              </div>
+            </div>
+
+            <div id="inventory-display">
+                <div class="inventory-label">INVENTORY</div>
+                <div id="inventory-slots"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Market UI (Shop) -->
+        <div id="market-ui" class="menu-screen hidden">
+          <div class="menu-content market-content">
+            <h2>Traveling Merchant</h2>
+            <p>Purchase upgrades with gold!</p>
+            <div class="shop-items">
+              <div class="shop-item" id="buy-speed">
+                <div class="item-info">
+                  <span class="item-name">🏃 Agility Boost</span>
+                  <span class="item-desc">Increases movement speed by 20%.</span>
+                </div>
+                <button class="btn-buy" data-cost="50">50 💰</button>
+              </div>
+              <div class="shop-item" id="buy-capacity">
+                <div class="item-info">
+                  <span class="item-name">🎒 Large Bag</span>
+                  <span class="item-desc">Increases inventory capacity by +2.</span>
+                </div>
+                <button class="btn-buy" data-cost="75">75 💰</button>
+              </div>
+              <div class="shop-item" id="repair-base">
+                <div class="item-info">
+                  <span class="item-name">🏰 Castle Repair</span>
+                  <span class="item-desc">Restores base health by 25%.</span>
+                </div>
+                <button class="btn-buy" data-cost="100">100 💰</button>
+              </div>
+            </div>
+            <button id="btn-close-market" class="btn-secondary mt-2">Close</button>
           </div>
         </div>
       </div>
     </div>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>

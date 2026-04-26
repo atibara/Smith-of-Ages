@@ -20,6 +20,7 @@ export class EnemyArcher {
     this.range = 300;
     this.lastLaneSwitch = 0;
     this.id = Math.random();
+    this.goldReward = 15;
   }
 
   takeDamage(amount) {

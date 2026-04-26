@@ -8,6 +8,7 @@ export class Player {
     this.height = 75;
     this.radius = 20;
     this.color = '#f39c12';
+    this.speedBase = 2.5;
     this.speed = 2.5;
     
     this.targetX = x;
@@ -20,10 +21,10 @@ export class Player {
 
     // --- SPRITE ANIMATION ---
     this.image = new Image();
-    this.image.src = 'assets/player.png'; // Resmin kaydedileceği yol
+    this.image.src = 'assets/player.png'; // Path to the player sprite
     this.currentFrame = 0;
     this.currentRow = 0;
-    this.animationSpeed = 100; // Çerçeve geçiş hızı (ms)
+    this.animationSpeed = 100; // Frame transition speed (ms)
     this.lastAnimTime = Date.now();
   }
 
@@ -119,8 +120,8 @@ export class Player {
 
     if (this.image.complete && this.image.naturalWidth !== 0) {
       // SPRITE DRAWING
-      // Gönderdiğin resim yaklaşık 7 sütun ve 4-5 satırdan oluşuyor gibi duruyor.
-      // Bu sayıları resmin tam yapısına göre değiştirebilirsin.
+      // The provided image seems to consist of about 7 columns and 4-5 rows.
+      // You can change these numbers according to the exact structure of the image.
       const cols = 7;  
       const rows = 4; 
       const frameWidth = this.image.naturalWidth / cols;
@@ -129,26 +130,26 @@ export class Player {
       if (this.isMoving) {
         const now = Date.now();
         if (now - this.lastAnimTime > this.animationSpeed) {
-          // İlk kare genellikle durma (idle) karesidir, yürüyüş 1'den başlar
+          // The first frame is usually idle, walking starts from frame 1
           this.currentFrame = ((this.currentFrame + 1) % (cols - 1)) + 1; 
           this.lastAnimTime = now;
         }
         
-        // Hareket açısına göre satır belirleme
+        // Determine row based on movement angle
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         
         if (Math.abs(dx) > Math.abs(dy)) {
-          this.currentRow = dx > 0 ? 3 : 2; // 3. satır sağa, 2. satır sola yürüme
+          this.currentRow = dx > 0 ? 3 : 2; // Row 3 for right, row 2 for left
         } else {
-          this.currentRow = dy > 0 ? 1 : 2; // 1. satır aşağı, 2. satır yukarı/sola
+          this.currentRow = dy > 0 ? 1 : 2; // Row 1 for down, row 2 for up/left
         }
       } else {
-        this.currentFrame = 0; // Durduğunda ilk frame
-        this.currentRow = 0;   // Durduğunda ilk satır
+        this.currentFrame = 0; // First frame when stopped
+        this.currentRow = 0;   // First row when stopped
       }
       
-      const renderWidth = this.width; // Ekranda görünme boyutu
+      const renderWidth = this.width; // Display size on screen
       const renderHeight = this.height;
 
       ctx.drawImage(
@@ -163,7 +164,7 @@ export class Player {
         renderHeight
       );
     } else {
-      // FALLBACK: Resim yüklenmediyse eski turuncu oyuncuyu çiz
+      // FALLBACK: Draw the old orange player if the image is not loaded
       ctx.beginPath();
       ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, this.radius);
       ctx.fillStyle = this.color;

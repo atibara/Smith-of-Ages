@@ -11,6 +11,7 @@ import { Forest } from './entities/Forest.js';
 import { Armory } from './entities/Armory.js';
 import { SiegeWorkshop } from './entities/SiegeWorkshop.js';
 import { UpperBase } from './entities/UpperBase.js';
+import { Market } from './entities/Market.js';
 import { EnemyBase } from './entities/EnemyBase.js';
 import { UPPER_WORLD_HEIGHT, LANE_Y, GRID_SIZE } from './Constants.js';
 
@@ -24,6 +25,7 @@ const mine = new IronMine(0, 0);
 const forest = new Forest(0, 0);
 const armory = new Armory(0, 0);
 const workshop = new SiegeWorkshop(0, 0);
+const market = new Market(0, 0);
 const upperBase = new UpperBase(0, 0);
 const enemyBase = new EnemyBase(0, 0);
 const soldiers = [];
@@ -39,6 +41,7 @@ let lastEnemySpawn = Date.now();
 const ENEMY_SPAWN_INTERVAL_MAX = 8000; 
 const ENEMY_SPAWN_INTERVAL_MIN = 2000;
 let currentSpawnInterval = ENEMY_SPAWN_INTERVAL_MAX;
+let gold = 0;
 
 let nextSoldierLane = 0;
 let nextEnemyLane = 0;
@@ -47,6 +50,7 @@ const bgCanvas = document.createElement('canvas');
 const bgCtx = bgCanvas.getContext('2d');
 
 function generateBackgroundTexture() {
+  if (!width || !height) return;
   bgCanvas.width = width;
   bgCanvas.height = height;
 
@@ -119,6 +123,9 @@ function resize() {
   workshop.x = width - 250;
   workshop.y = height - 160;
 
+  market.x = 200;
+  market.y = (forest.y + mine.y) / 2;
+
   upperBase.x = 80;
   upperBase.y = UPPER_WORLD_HEIGHT / 2;
   
@@ -130,28 +137,34 @@ function resize() {
 
 window.addEventListener('resize', resize);
 resize();
+
 player.x = width / 2;
-player.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2 + 100; // Increased spacing so player isn't inside smithy bounds at start
+player.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2 + 100;
 player.targetX = player.x;
 player.targetY = player.y;
 
-let gameState = 'MENU'; // 'MENU', 'PLAYING', 'EXIT'
+let gameState = 'MENU'; // 'MENU', 'PLAYING', 'SHOPPING', 'EXIT'
 
 // Input handling - keyboard
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Escape') {
     if (gameState === 'PLAYING') {
       gameState = 'MENU';
-      document.getElementById('main-menu').classList.remove('hidden');
-      document.getElementById('btn-play').innerText = 'Devam Et'; // Change 'Play' to 'Resume'
+      const mainMenu = document.getElementById('main-menu');
+      if (mainMenu) {
+        mainMenu.classList.remove('hidden');
+        const playBtn = document.getElementById('btn-play');
+        if (playBtn) playBtn.innerText = 'Resume';
+      }
     } else if (gameState === 'MENU') {
       const settingsMenu = document.getElementById('settings-menu');
       const mainMenu = document.getElementById('main-menu');
-      if (!settingsMenu.classList.contains('hidden')) {
+      if (settingsMenu && !settingsMenu.classList.contains('hidden')) {
           settingsMenu.classList.add('hidden');
-          mainMenu.classList.remove('hidden');
-      } else if (!mainMenu.classList.contains('hidden')) {
-          if (document.getElementById('btn-play').innerText === 'Devam Et') {
+          if (mainMenu) mainMenu.classList.remove('hidden');
+      } else if (mainMenu && !mainMenu.classList.contains('hidden')) {
+          const playBtn = document.getElementById('btn-play');
+          if (playBtn && playBtn.innerText === 'Resume') {
               mainMenu.classList.add('hidden');
               gameState = 'PLAYING';
           }
@@ -161,21 +174,26 @@ window.addEventListener('keydown', (e) => {
   }
 
   if (gameState !== 'PLAYING') return;
-  
+
   if (e.code === 'Space') {
-    // 1. Interaction with Mine (Gather Iron)
+    if (market.isPlayerNear(player)) {
+      gameState = 'SHOPPING';
+      const marketUI = document.getElementById('market-ui');
+      if (marketUI) marketUI.classList.remove('hidden');
+      updateShopButtons();
+      return;
+    }
+
     if (mine.isPlayerNear(player)) {
       if (player.inventory.length < player.maxInventory) {
         player.inventory.push('iron');
       }
     }
-    // 2. Interaction with Forest (Gather Wood)
     else if (forest.isPlayerNear(player)) {
       if (player.inventory.length < player.maxInventory) {
         player.inventory.push('wood');
       }
     }
-    // 3. Interaction with Smithy (Forge Iron -> Sword or Wood -> Bow) - FIXED BUG
     else if (smithy.isPlayerNear(player)) {
       const ironIndex = player.inventory.indexOf('iron');
       const woodIndex = player.inventory.indexOf('wood');
@@ -185,25 +203,18 @@ window.addEventListener('keydown', (e) => {
         player.inventory[woodIndex] = 'bow';
       }
     }
-    // 4. Interaction with Siege Workshop (2W + 1I -> Mangonel Follower)
     else if (workshop.isPlayerNear(player)) {
-      if (mangonels.length > 0) return; // Only one allowed
-
+      if (mangonels.length > 0) return;
       const ironIndices = player.inventory.map((item, i) => item === 'iron' ? i : -1).filter(i => i !== -1);
       const woodIndices = player.inventory.map((item, i) => item === 'wood' ? i : -1).filter(i => i !== -1);
-      
       if (woodIndices.length >= 2 && ironIndices.length >= 1) {
         const toRemove = [woodIndices[0], woodIndices[1], ironIndices[0]].sort((a,b) => b-a);
         toRemove.forEach(idx => player.inventory.splice(idx, 1));
-        
-        // Spawn mangonel following player
         const newMangonel = new Mangonel(player.x - 60, player.y);
         mangonels.push(newMangonel);
       }
     }
-    // 5. Interaction with Armory (Deliver Sword/Bow OR Deploy Mangonel)
     else if (armory.isPlayerNear(player)) {
-      // Check for mangonel deployment first
       const followingMangonel = mangonels.find(m => m.state === 'FOLLOWING');
       if (followingMangonel) {
         followingMangonel.state = 'COMBAT';
@@ -217,7 +228,6 @@ window.addEventListener('keydown', (e) => {
 
       const swordIndex = player.inventory.indexOf('sword');
       const bowIndex = player.inventory.indexOf('bow');
-      
       if (swordIndex !== -1 || bowIndex !== -1) {
         let targetLane = -1;
         if (enemies.length > 0) {
@@ -231,9 +241,7 @@ window.addEventListener('keydown', (e) => {
             }
           }
         }
-        
         const spawnLane = targetLane !== -1 ? targetLane : nextSoldierLane;
-        
         if (swordIndex !== -1) {
           player.inventory.splice(swordIndex, 1);
           soldiers.push(new Soldier(upperBase.x, LANE_Y[spawnLane], spawnLane));
@@ -241,7 +249,6 @@ window.addEventListener('keydown', (e) => {
           player.inventory.splice(bowIndex, 1);
           archers.push(new Archer(upperBase.x, LANE_Y[spawnLane], spawnLane));
         }
-
         if (targetLane === -1) {
           nextSoldierLane = (nextSoldierLane + 1) % LANE_Y.length;
         }
@@ -250,31 +257,25 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-// Input handling
 canvas.addEventListener('mousedown', (e) => {
   if (gameState !== 'PLAYING') return;
-  
   const rect = canvas.getBoundingClientRect();
   const screenX = e.clientX - rect.left;
   const screenY = e.clientY - rect.top;
-  
-  // Convert screen to world coordinates
   const worldX = screenX + camera.x;
   const worldY = screenY + camera.y;
-  
-  const obstacles = [smithy, mine, forest, armory, workshop];
-  player.setTarget(worldX, worldY, obstacles, { minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height });
+  const obstacles = [smithy, mine, forest, armory, workshop, market];
+  // Subtract 80px from maxY for HUD area
+  player.setTarget(worldX, worldY, obstacles, { minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height - 80 });
 });
 
 function drawGrid() {
   ctx.strokeStyle = '#333';
   ctx.lineWidth = 1;
-  
   const startX = Math.floor(camera.x / GRID_SIZE) * GRID_SIZE;
   const startY = Math.max(UPPER_WORLD_HEIGHT, Math.floor(camera.y / GRID_SIZE) * GRID_SIZE);
   const endX = camera.x + width;
   const endY = camera.y + height;
-
   ctx.beginPath();
   for (let x = startX; x <= endX; x += GRID_SIZE) {
     ctx.moveTo(x - camera.x, UPPER_WORLD_HEIGHT);
@@ -287,35 +288,33 @@ function drawGrid() {
     }
   }
   ctx.stroke();
-  
-  // Drawworld bounds
   ctx.strokeStyle = '#555';
   ctx.lineWidth = 5;
   ctx.strokeRect(0, UPPER_WORLD_HEIGHT, width, height - UPPER_WORLD_HEIGHT);
 }
 
 function update() {
+  if (gameState !== 'PLAYING' && gameState !== 'SHOPPING') return;
+
+  const obstacles = [smithy, mine, forest, armory, workshop, market];
+  // Subtract 80px from maxY for HUD area
+  player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height - 80 }, obstacles);
+  
+  const isTowing = mangonels.some(m => m.state === 'FOLLOWING');
+  player.speedBase = player.speedBase || 2.5;
+  player.speed = isTowing ? player.speedBase * 0.48 : player.speedBase;
+
   if (gameState !== 'PLAYING') return;
 
-  const obstacles = [smithy, mine, forest, armory, workshop];
-  player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height }, obstacles);
-  
-  // Apply towing penalty if player is pulling a Mangonel
-  const isTowing = mangonels.some(m => m.state === 'FOLLOWING');
-  player.speed = isTowing ? 1.2 : 2.5;
-
-  // Calculate dynamic spawn interval based on player proximity to enemy base
   const allPlayerUnits = soldiers.concat(archers);
   if (allPlayerUnits.length > 0) {
     const maxX = Math.max(...allPlayerUnits.map(u => u.x));
-    // Normalize proximity (0 when at upperBase, 1 when at enemyBase)
     const proximity = Math.min(1, Math.max(0, (maxX - upperBase.x) / (enemyBase.x - upperBase.x)));
     currentSpawnInterval = ENEMY_SPAWN_INTERVAL_MAX - (ENEMY_SPAWN_INTERVAL_MAX - ENEMY_SPAWN_INTERVAL_MIN) * proximity;
   } else {
     currentSpawnInterval = ENEMY_SPAWN_INTERVAL_MAX;
   }
 
-  // Spawning enemies from the enemy base if it's not destroyed
   if (enemyBase.health > 0 && Date.now() - lastEnemySpawn > currentSpawnInterval) {
     let targetLane = -1;
     const allPlayers = soldiers.concat(archers);
@@ -330,48 +329,39 @@ function update() {
         }
       }
     }
-
     const lane = targetLane !== -1 ? targetLane : nextEnemyLane;
-    // 75% Melee Enemy, 25% Archer Enemy
     if (Math.random() < 0.75) {
       enemies.push(new Enemy(enemyBase.x, LANE_Y[lane], lane));
     } else {
       enemies.push(new EnemyArcher(enemyBase.x, LANE_Y[lane], lane));
     }
-
     if (targetLane === -1) {
       nextEnemyLane = (nextEnemyLane + 1) % LANE_Y.length;
     }
     lastEnemySpawn = Date.now();
   }
 
-  // Update soldiers
   for (let i = soldiers.length - 1; i >= 0; i--) {
     soldiers[i].update(soldiers, enemies, enemyBase, archers, mangonels);
     if (soldiers[i].health <= 0) soldiers.splice(i, 1);
   }
-
-  // Update archers
   for (let i = archers.length - 1; i >= 0; i--) {
     archers[i].update(archers, enemies, enemyBase, arrows, soldiers, mangonels);
     if (archers[i].health <= 0) archers.splice(i, 1);
   }
-
-  // Update mangonels
   for (let i = mangonels.length - 1; i >= 0; i--) {
     mangonels[i].update(mangonels, enemies, enemyBase, stones, player, allPlayerUnits);
     if (mangonels[i].health <= 0) mangonels.splice(i, 1);
   }
-
-  // Update enemies
   for (let i = enemies.length - 1; i >= 0; i--) {
     enemies[i].update(enemies, allPlayerUnits.concat(mangonels.filter(m => m.state === 'COMBAT')), upperBase, arrows);
     if (enemies[i].health <= 0 || enemies[i].x < -100) {
+      if (enemies[i].health <= 0) {
+        gold += enemies[i].goldReward || 0;
+      }
       enemies.splice(i, 1);
     }
   }
-
-  // Update arrows
   for (let i = arrows.length - 1; i >= 0; i--) {
     if (arrows[i].team === 'player') {
       arrows[i].update(enemies, enemyBase);
@@ -380,127 +370,159 @@ function update() {
     }
     if (!arrows[i].active) arrows.splice(i, 1);
   }
-
-  // Update stones
   for (let i = stones.length - 1; i >= 0; i--) {
     stones[i].update(enemies, enemyBase);
     if (!stones[i].active) stones.splice(i, 1);
   }
   
-  // Static world camera
-  camera.x = 0;
-  camera.y = 0;
+  updateHUD();
+}
+
+function updateHUD() {
+  const goldEl = document.getElementById('gold-amount');
+  const healthBar = document.getElementById('base-health-bar');
+  const healthContainer = document.getElementById('base-health-container');
+  const invSlots = document.getElementById('inventory-slots');
+
+  if (goldEl) goldEl.innerText = Math.floor(gold);
+
+  if (healthBar && upperBase) {
+    const healthPercent = (upperBase.health / upperBase.maxHealth) * 100;
+    healthBar.style.width = `${healthPercent}%`;
+    if (healthContainer) {
+      healthContainer.classList.remove('health-warning', 'health-critical');
+      if (healthPercent < 25) healthContainer.classList.add('health-critical');
+      else if (healthPercent < 50) healthContainer.classList.add('health-warning');
+    }
+  }
+
+  if (invSlots && player) {
+      invSlots.innerHTML = '';
+      for (let i = 0; i < player.maxInventory; i++) {
+          const slot = document.createElement('div');
+          slot.className = 'inv-slot';
+          if (player.inventory[i]) {
+              const item = player.inventory[i];
+              if (item === 'iron') slot.innerText = '⛓️';
+              else if (item === 'wood') slot.innerText = '🪵';
+              else if (item === 'sword') slot.innerText = '⚔️';
+              else if (item === 'bow') slot.innerText = '🏹';
+          }
+          invSlots.appendChild(slot);
+      }
+  }
 }
 
 function render() {
   ctx.drawImage(bgCanvas, -camera.x, -camera.y);
-  
   ctx.strokeStyle = '#e74c3c';
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(0, UPPER_WORLD_HEIGHT);
   ctx.lineTo(width, UPPER_WORLD_HEIGHT);
   ctx.stroke();
-  
   drawGrid();
   upperBase.draw(ctx, camera);
   enemyBase.draw(ctx, camera);
   mine.draw(ctx, camera, player);
   forest.draw(ctx, camera, player);
+  market.draw(ctx, camera, player);
   workshop.draw(ctx, camera, player);
   smithy.draw(ctx, camera, player);
   armory.draw(ctx, camera, player);
   player.draw(ctx, camera);
-  
-  // Draw top UI layer for buildings
   mine.drawUI(ctx, camera, player);
   forest.drawUI(ctx, camera, player);
+  market.drawUI(ctx, camera, player);
   workshop.drawUI(ctx, camera, player);
   smithy.drawUI(ctx, camera, player);
   armory.drawUI(ctx, camera, player);
-  
-  // Draw following mangonels in Lower World
   mangonels.filter(m => m.state === 'FOLLOWING').forEach(m => m.draw(ctx, camera));
-  
   soldiers.forEach(s => s.draw(ctx, camera));
   archers.forEach(a => a.draw(ctx, camera));
-  // Draw combat mangonels in Upper World
   mangonels.filter(m => m.state === 'COMBAT').forEach(m => m.draw(ctx, camera));
   enemies.forEach(e => e.draw(ctx, camera));
   arrows.forEach(a => a.draw(ctx, camera));
   stones.forEach(s => s.draw(ctx, camera));
-  
-  // Interaction Prompts
+
   ctx.fillStyle = '#fff';
   ctx.font = '16px monospace';
   ctx.textAlign = 'center';
-
   if (mine.isPlayerNear(player)) {
-    if (player.inventory.length < player.maxInventory) {
-      ctx.fillText('Press SPACE to mine iron', mine.x, mine.y + mine.height / 2 + 20);
-    } else {
-      ctx.fillText('Inventory Full!', mine.x, mine.y + mine.height / 2 + 20);
-    }
+    if (player.inventory.length < player.maxInventory) ctx.fillText('Press SPACE to mine iron', mine.x, mine.y + mine.height / 2 + 20);
+    else ctx.fillText('Inventory Full!', mine.x, mine.y + mine.height / 2 + 20);
   } else if (forest.isPlayerNear(player)) {
-    if (player.inventory.length < player.maxInventory) {
-      ctx.fillText('Press SPACE to gather wood', forest.x, forest.y + forest.height / 2 + 20);
-    } else {
-      ctx.fillText('Inventory Full!', forest.x, forest.y + forest.height / 2 + 20);
-    }
+    if (player.inventory.length < player.maxInventory) ctx.fillText('Press SPACE to gather wood', forest.x, forest.y + forest.height / 2 + 20);
+    else ctx.fillText('Inventory Full!', forest.x, forest.y + forest.height / 2 + 20);
   } else if (smithy.isPlayerNear(player)) {
     const hasIron = player.inventory.includes('iron');
     const hasWood = player.inventory.includes('wood');
-    const woodCount = player.inventory.filter(i => i === 'wood').length;
-    const ironCount = player.inventory.filter(i => i === 'iron').length;
-
+    if (hasIron) ctx.fillText('Press SPACE to forge SWORD (1 Iron)', smithy.x, smithy.y + smithy.height / 2 + 20);
+    else if (hasWood) ctx.fillText('Press SPACE to forge BOW (1 Wood)', smithy.x, smithy.y + smithy.height / 2 + 20);
+    else ctx.fillText('Need Iron or Wood!', smithy.x, smithy.y + smithy.height / 2 + 20);
   } else if (workshop.isPlayerNear(player)) {
     const woodCount = player.inventory.filter(i => i === 'wood').length;
     const ironCount = player.inventory.filter(i => i === 'iron').length;
-    if (mangonels.length > 0) {
-      ctx.fillText('Already have a Mangonel!', workshop.x, workshop.y + workshop.height / 2 + 20);
-    } else if (woodCount >= 2 && ironCount >= 1) {
-      ctx.fillText('Press SPACE to build MANGONEL (2W + 1I)', workshop.x, workshop.y + workshop.height / 2 + 20);
-    } else {
-      ctx.fillText('Need 2 Wood and 1 Iron!', workshop.x, workshop.y + workshop.height / 2 + 20);
-    }
+    if (mangonels.length > 0) ctx.fillText('Already have a Mangonel!', workshop.x, workshop.y + workshop.height / 2 + 20);
+    else if (woodCount >= 2 && ironCount >= 1) ctx.fillText('Press SPACE to build MANGONEL (2W + 1I)', workshop.x, workshop.y + workshop.height / 2 + 20);
+    else ctx.fillText('Need 2 Wood and 1 Iron!', workshop.x, workshop.y + workshop.height / 2 + 20);
   } else if (armory.isPlayerNear(player)) {
     const hasSword = player.inventory.includes('sword');
     const hasBow = player.inventory.includes('bow');
     const followingMangonel = mangonels.find(m => m.state === 'FOLLOWING');
-    
-    if (followingMangonel) {
-      ctx.fillText('Press SPACE to deploy MANGONEL to battlefield', armory.x, armory.y + armory.height / 2 + 20);
-    } else if (hasSword) {
-      ctx.fillText('Press SPACE to deliver sword', armory.x, armory.y + armory.height / 2 + 20);
-    } else if (hasBow) {
-      ctx.fillText('Press SPACE to deliver bow', armory.x, armory.y + armory.height / 2 + 20);
-    } else {
-      ctx.fillText('Need Sword, Bow or Follower Mangonel!', armory.x, armory.y + armory.height / 2 + 20);
-    }
+    if (followingMangonel) ctx.fillText('Press SPACE to deploy MANGONEL to battlefield', armory.x, armory.y + armory.height / 2 + 20);
+    else if (hasSword) ctx.fillText('Press SPACE to deliver sword', armory.x, armory.y + armory.height / 2 + 20);
+    else if (hasBow) ctx.fillText('Press SPACE to deliver bow', armory.x, armory.y + armory.height / 2 + 20);
+    else ctx.fillText('Need Sword, Bow or Follower Mangonel!', armory.x, armory.y + armory.height / 2 + 20);
   }
 
-  // End Game Check
   if (upperBase.health <= 0) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = '#e74c3c';
     ctx.font = 'bold 48px monospace';
     ctx.fillText('DEFEAT - BASE DESTROYED', width / 2, height / 2);
-    ctx.font = '24px monospace';
-    ctx.fillStyle = '#fff';
-    ctx.fillText('Refresh to restart', width / 2, height / 2 + 50);
   } else if (enemyBase.health <= 0) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = '#2ecc71';
     ctx.font = 'bold 48px monospace';
     ctx.fillText('VICTORY - ENEMY BASE DESTROYED', width / 2, height / 2);
-    ctx.font = '24px monospace';
-    ctx.fillStyle = '#fff';
-    ctx.fillText('Refresh to restart', width / 2, height / 2 + 50);
   } else {
     requestAnimationFrame(gameLoop);
   }
+}
+
+function updateShopButtons() {
+    const buttons = document.querySelectorAll('.btn-buy');
+    buttons.forEach(btn => {
+        const cost = parseInt(btn.getAttribute('data-cost'));
+        btn.disabled = gold < cost;
+    });
+}
+
+document.querySelectorAll('.btn-buy').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const cost = parseInt(btn.getAttribute('data-cost'));
+        const action = btn.parentElement.id;
+        if (gold >= cost) {
+            gold -= cost;
+            if (action === 'buy-speed') player.speedBase = (player.speedBase || 2.5) * 1.2;
+            else if (action === 'buy-capacity') player.maxInventory += 2;
+            else if (action === 'repair-base') upperBase.health = Math.min(upperBase.maxHealth, upperBase.health + upperBase.maxHealth * 0.25);
+            updateShopButtons();
+            updateHUD();
+        }
+    });
+});
+
+const closeMarketBtn = document.getElementById('btn-close-market');
+if (closeMarketBtn) {
+  closeMarketBtn.addEventListener('click', () => {
+      const marketUI = document.getElementById('market-ui');
+      if (marketUI) marketUI.classList.add('hidden');
+      gameState = 'PLAYING';
+  });
 }
 
 function gameLoop() {
@@ -511,31 +533,53 @@ function gameLoop() {
 gameLoop();
 
 // --- UI EVENT LISTENERS ---
-const mainMenu = document.getElementById('main-menu');
-const settingsMenu = document.getElementById('settings-menu');
-const exitScreen = document.getElementById('exit-screen');
+const playBtn = document.getElementById('btn-play');
+if (playBtn) {
+  playBtn.addEventListener('click', () => {
+      const mainMenu = document.getElementById('main-menu');
+      if (mainMenu) mainMenu.classList.add('hidden');
+      const gameHud = document.getElementById('game-hud');
+      if (gameHud) gameHud.classList.remove('hidden');
+      gameState = 'PLAYING';
+  });
+}
 
-document.getElementById('btn-play').addEventListener('click', () => {
-    mainMenu.classList.add('hidden');
-    gameState = 'PLAYING';
-});
+const settingsBtn = document.getElementById('btn-settings');
+if (settingsBtn) {
+  settingsBtn.addEventListener('click', () => {
+      const mainMenu = document.getElementById('main-menu');
+      if (mainMenu) mainMenu.classList.add('hidden');
+      const settingsMenu = document.getElementById('settings-menu');
+      if (settingsMenu) settingsMenu.classList.remove('hidden');
+  });
+}
 
-document.getElementById('btn-settings').addEventListener('click', () => {
-    mainMenu.classList.add('hidden');
-    settingsMenu.classList.remove('hidden');
-});
+const backSettingsBtn = document.getElementById('btn-back-settings');
+if (backSettingsBtn) {
+  backSettingsBtn.addEventListener('click', () => {
+      const settingsMenu = document.getElementById('settings-menu');
+      if (settingsMenu) settingsMenu.classList.add('hidden');
+      const mainMenu = document.getElementById('main-menu');
+      if (mainMenu) mainMenu.classList.remove('hidden');
+  });
+}
 
-document.getElementById('btn-back-settings').addEventListener('click', () => {
-    settingsMenu.classList.add('hidden');
-    mainMenu.classList.remove('hidden');
-});
+const exitBtn = document.getElementById('btn-exit');
+if (exitBtn) {
+  exitBtn.addEventListener('click', () => {
+      const mainMenu = document.getElementById('main-menu');
+      if (mainMenu) mainMenu.classList.add('hidden');
+      const exitScreen = document.getElementById('exit-screen');
+      if (exitScreen) exitScreen.classList.remove('hidden');
+  });
+}
 
-document.getElementById('btn-exit').addEventListener('click', () => {
-    mainMenu.classList.add('hidden');
-    exitScreen.classList.remove('hidden');
-});
-
-document.getElementById('btn-back-exit').addEventListener('click', () => {
-    exitScreen.classList.add('hidden');
-    mainMenu.classList.remove('hidden');
-});
+const backExitBtn = document.getElementById('btn-back-exit');
+if (backExitBtn) {
+  backExitBtn.addEventListener('click', () => {
+      const exitScreen = document.getElementById('exit-screen');
+      if (exitScreen) exitScreen.classList.add('hidden');
+      const mainMenu = document.getElementById('main-menu');
+      if (mainMenu) mainMenu.classList.remove('hidden');
+  });
+}

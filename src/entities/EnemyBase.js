@@ -26,25 +26,42 @@ export class EnemyBase {
     ctx.fillStyle = '#000';
     ctx.fillRect(drawX - this.width / 2, drawY + 10, 20, 50);
 
-    // Health Bar
-    const barWidth = 100;
-    const barHeight = 10;
+    // Modern Health Bar
+    const barWidth = 140;
+    const barHeight = 8;
     const barX = drawX - barWidth / 2;
-    const barY = drawY - this.height / 2 - 25;
+    const barY = drawY + this.height / 2 + 10;
 
-    // Background (red)
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
+    // Shadow/Glow
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
 
-    // Foreground (health color)
-    const healthPercent = this.health / this.maxHealth;
-    ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+    // Background (Dark)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, barWidth, barHeight, 4);
+    ctx.fill();
+
+    // Foreground (Red Gradient)
+    const healthPercent = Math.max(0, this.health / this.maxHealth);
+    if (healthPercent > 0) {
+        const grad = ctx.createLinearGradient(barX, 0, barX + barWidth * healthPercent, 0);
+        grad.addColorStop(0, '#ff4d4d');
+        grad.addColorStop(1, '#990000');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(barX, barY, barWidth * healthPercent, barHeight, 4);
+        ctx.fill();
+    }
     
+    ctx.shadowBlur = 0; // Reset shadow
+
     // Text label
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 12px monospace';
+    ctx.font = 'bold 11px Outfit, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`ENEMY BASE HP: ${this.health}`, drawX, barY - 10);
+    ctx.fillText(`ENEMY FORTRESS`, drawX, barY + barHeight + 15);
+    ctx.font = '9px Outfit';
+    ctx.fillText(`${Math.floor(this.health)} / ${this.maxHealth}`, drawX, barY + barHeight + 25);
   }
 }

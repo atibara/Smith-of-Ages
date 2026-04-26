@@ -15,9 +15,9 @@ export class Enemy {
     this.maxHealth = 80;
     this.attackDamage = 8;
     this.attackDelay = 1200;
-    this.lastAttack = 0;
     this.lastLaneSwitch = 0;
     this.id = Math.random();
+    this.goldReward = 10;
   }
 
   takeDamage(amount) {
