@@ -9,7 +9,7 @@ export class Mangonel {
     this.y = y;
     this.lane = lane;
     this.color = '#8b4513';
-    this.speed = 0.6;
+    this.speed = 0.25;
     
     // States: 'FOLLOWING', 'COMBAT'
     this.state = 'FOLLOWING';
@@ -19,7 +19,7 @@ export class Mangonel {
     this.health = 150;
     this.maxHealth = 150;
     this.attackDamage = 80;
-    this.attackDelay = 4000;
+    this.attackDelay = 6000;
     this.lastAttack = 0;
     this.range = 550;
     this.minRange = 150;
@@ -77,7 +77,12 @@ export class Mangonel {
       let targetY = this.y;
 
       if (closestEnemy) {
-        targetX = closestEnemy.x;
+        // Target prediction (shoot ahead of enemy)
+        const distance = minXDist;
+        const travelFrames = distance / 3; // Stone speed is 3
+        const enemySpeed = closestEnemy.speed || 0.5;
+        targetX = closestEnemy.x - (travelFrames * enemySpeed); // Enemy moves left, so we aim left 
+        
         targetLane = closestEnemy.lane;
         targetY = LANE_Y[targetLane];
         // ONLY stop if the enemy is in our lane OR if we are close to our minimum range
@@ -100,39 +105,19 @@ export class Mangonel {
         }
       }
       
-      // Normal movement collision logic - always check this if not explicitly shooting/stopped
+      // Normal movement collision logic
       if (canMove) {
         let blockedByTeammate = false;
         for (const other of allTeammates) {
           if (other === this || other.lane !== this.lane) continue;
-          if (other.x > this.x && other.x - this.x < this.width + padding) {
+          if (other.x > this.x && other.x - this.x < (this.width/2 + other.width/2 + 20)) {
             canMove = false;
             blockedByTeammate = true;
             break;
           }
         }
 
-        if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 1000) {
-          const candidateLanes = [];
-          if (this.lane > 0) candidateLanes.push(this.lane - 1);
-          if (this.lane < LANE_Y.length - 1) candidateLanes.push(this.lane + 1);
-
-          for (const nextLane of candidateLanes) {
-            let laneClear = true;
-            for (const other of allTeammates) {
-              if (other.lane === nextLane && Math.abs(other.x - this.x) < this.width + padding) {
-                laneClear = false;
-                break;
-              }
-            }
-            if (laneClear) {
-              this.lane = nextLane;
-              this.lastLaneSwitch = Date.now();
-              canMove = true;
-              break;
-            }
-          }
-        }
+        // NO LANE SWITCHING FOR MANGONELS - They are heavy and stay in their lane!
 
         if (canMove) {
           this.x += currentSpeed;

@@ -8,8 +8,8 @@ export class EnemyArcher {
     this.x = x;
     this.y = yOffset;
     this.lane = lane; // 0, 1, 2
-    this.color = '#c0392b'; // Darker red
-    this.speed = 0.7; // Slightly slower
+    this.color = '#d35400'; // Dark orange theme for enemy archers
+    this.speed = 0.4;
     
     // Health and Combat
     this.health = 50;

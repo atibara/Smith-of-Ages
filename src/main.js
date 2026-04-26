@@ -300,6 +300,10 @@ function update() {
   const obstacles = [smithy, mine, forest, armory, workshop];
   player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height }, obstacles);
   
+  // Apply towing penalty if player is pulling a Mangonel
+  const isTowing = mangonels.some(m => m.state === 'FOLLOWING');
+  player.speed = isTowing ? 1.2 : 2.5;
+
   // Calculate dynamic spawn interval based on player proximity to enemy base
   const allPlayerUnits = soldiers.concat(archers);
   if (allPlayerUnits.length > 0) {
