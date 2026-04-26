@@ -8,7 +8,7 @@ export class Soldier {
     this.y = yOffset; // Vertical center of the upper world path
     this.lane = lane; // 0 (top), 1 (middle), 2 (bottom)
     this.color = '#3498db'; // Look like blue soldiers
-    this.speed = 0.6;
+    this.speed = 0.4;
     
     // Health and Combat
     this.health = 100;
@@ -43,8 +43,9 @@ export class Soldier {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     for (let i = 0; i < data.length; i += 4) {
-      // Target pure or near-pure white
-      if (data[i] > 250 && data[i+1] > 250 && data[i+2] > 250) {
+      // More aggressive white removal: anything very bright
+      const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+      if (brightness > 240) {
         data[i+3] = 0;
       }
     }
@@ -239,7 +240,7 @@ export class Soldier {
         // High-res sprite sheet (1024x1024, 2x2 grid)
         const frameWidth = 512;
         const frameHeight = 512;
-        const renderSize = 54; 
+        const renderSize = 85; 
 
         ctx.drawImage(
             this.processedSprite,

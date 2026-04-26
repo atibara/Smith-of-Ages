@@ -4,12 +4,12 @@ export class Player {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 45;
-    this.height = 75;
+    this.width = 60;
+    this.height = 100;
     this.radius = 20;
     this.color = '#f39c12';
-    this.speedBase = 2.5;
-    this.speed = 2.5;
+    this.speedBase = 2.0;
+    this.speed = 2.0;
     
     this.targetX = x;
     this.targetY = y;
@@ -41,7 +41,8 @@ export class Player {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     for (let i = 0; i < data.length; i += 4) {
-      if (data[i] > 250 && data[i+1] > 250 && data[i+2] > 250) {
+      const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+      if (brightness > 240) {
         data[i+3] = 0;
       }
     }

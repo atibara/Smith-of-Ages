@@ -8,7 +8,7 @@ export class Enemy {
     this.y = yOffset;
     this.lane = lane; // 0, 1, 2
     this.color = '#e74c3c'; // Red theme for enemies
-    this.speed = 0.5;
+    this.speed = 0.35;
     
     // Health and Combat
     this.health = 80;
@@ -44,7 +44,8 @@ export class Enemy {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     for (let i = 0; i < data.length; i += 4) {
-      if (data[i] > 250 && data[i+1] > 250 && data[i+2] > 250) {
+      const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+      if (brightness > 240) {
         data[i+3] = 0;
       }
     }
@@ -238,7 +239,7 @@ export class Enemy {
         // High-res sprite sheet (1024x1024, 2x2 grid)
         const frameWidth = 512;
         const frameHeight = 512;
-        const renderSize = 54;
+        const renderSize = 85;
 
         ctx.save();
         ctx.translate(drawX, drawY);
