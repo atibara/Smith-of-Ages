@@ -8,14 +8,13 @@ export class Stone {
     this.targetY = targetY;
     this.lane = targetLane;
     
-    this.x = x;
-    this.y = y;
+    this.color = '#95a5a6';
+    this.speed = 3;
     this.team = team;
     this.damage = damage;
     this.radius = 30; // Visual radius
     this.aoeRadius = 80; // Splash damage radius
     
-    this.speed = 4;
     this.progress = 0; // 0 to 1
     this.arcHeight = 150; // How high the stone flies
     

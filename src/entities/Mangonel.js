@@ -3,13 +3,13 @@ import { Stone } from './Stone.js';
 
 export class Mangonel {
   constructor(x, y, lane = 1) {
-    this.width = 60;
-    this.height = 40;
+    this.width = 40;
+    this.height = 30;
     this.x = x;
     this.y = y;
     this.lane = lane;
     this.color = '#8b4513';
-    this.speed = 1.0;
+    this.speed = 0.6;
     
     // States: 'FOLLOWING', 'COMBAT'
     this.state = 'FOLLOWING';

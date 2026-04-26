@@ -107,17 +107,17 @@ function resize() {
   smithy.x = width / 2;
   smithy.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2;
   
-  mine.x = 100;
-  mine.y = height - 100;
+  mine.x = 200;
+  mine.y = height - 160;
 
-  forest.x = 100;
-  forest.y = UPPER_WORLD_HEIGHT + 100;
+  forest.x = 200;
+  forest.y = UPPER_WORLD_HEIGHT + 140;
   
-  armory.x = width - 150;
-  armory.y = UPPER_WORLD_HEIGHT + 60;
+  armory.x = width - 220;
+  armory.y = UPPER_WORLD_HEIGHT + 120;
 
-  workshop.x = width - 200;
-  workshop.y = height - 120;
+  workshop.x = width - 250;
+  workshop.y = height - 160;
 
   upperBase.x = 80;
   upperBase.y = UPPER_WORLD_HEIGHT / 2;
@@ -371,11 +371,11 @@ function render() {
   drawGrid();
   upperBase.draw(ctx, camera);
   enemyBase.draw(ctx, camera);
-  mine.draw(ctx, camera);
-  forest.draw(ctx, camera);
-  workshop.draw(ctx, camera);
-  smithy.draw(ctx, camera);
-  armory.draw(ctx, camera);
+  mine.draw(ctx, camera, player);
+  forest.draw(ctx, camera, player);
+  workshop.draw(ctx, camera, player);
+  smithy.draw(ctx, camera, player);
+  armory.draw(ctx, camera, player);
   player.draw(ctx, camera);
   
   // Draw following mangonels in Lower World

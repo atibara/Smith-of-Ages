@@ -9,7 +9,7 @@ export class Archer {
     this.y = yOffset;
     this.lane = lane; // 0, 1, 2
     this.color = '#27ae60'; // Green theme for archers
-    this.speed = 1.8;
+    this.speed = 1.0;
     
     // Health and Combat
     this.health = 60; // Lower than soldiers

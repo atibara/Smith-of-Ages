@@ -6,7 +6,7 @@ export class Player {
     this.height = 75;
     this.radius = 20;
     this.color = '#f39c12';
-    this.speed = 4;
+    this.speed = 2.5;
     
     this.targetX = x;
     this.targetY = y;

@@ -4,7 +4,7 @@ export class Arrow {
     this.y = y;
     this.team = team;
     this.lane = lane;
-    this.speed = team === 'player' ? 7 : -7;
+    this.speed = team === 'player' ? 5 : -5;
     this.damage = damage;
     this.width = 15;
     this.height = 3;

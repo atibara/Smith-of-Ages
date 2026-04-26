@@ -8,7 +8,7 @@ export class IronMine {
     this.interactionRadius = 120;
   }
 
-  draw(ctx, camera) {
+  draw(ctx, camera, player = null) {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
@@ -35,14 +35,86 @@ export class IronMine {
 
     // Draw little iron ores embedded
     ctx.fillStyle = '#34495e';
-    ctx.fillRect(this.x - camera.x - 20, this.y - camera.y, 10, 10);
-    ctx.fillRect(this.x - camera.x + 10, this.y - camera.y + 20, 12, 12);
+    ctx.fillRect(drawX - 20, drawY, 10, 10);
+    ctx.fillRect(drawX + 10, drawY + 20, 12, 12);
+
+    // Draw Miner NPC
+    const npcX = drawX + 35;
+    const npcY = drawY + this.height / 2 + 10;
+    this.drawNPC(ctx, npcX, npcY, '#95a5a6', '#f39c12'); // grey uniform, yellow hard hat
+
+    if (player && this.isPlayerNear(player)) {
+      this.drawSpeechBubble(ctx, "Greetings! This Iron Mine holds sturdy iron ores.", npcX, npcY - 25);
+    }
 
     // Label
     ctx.fillStyle = '#fff';
     ctx.font = '16px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('Iron Mine', this.x - camera.x, this.y - camera.y - this.height / 2 - 15);
+    ctx.fillText('Iron Mine', drawX, drawY - this.height / 2 - 15);
+  }
+
+  drawNPC(ctx, x, y, clothesColor, hatColor) {
+    // Body
+    ctx.fillStyle = clothesColor;
+    ctx.fillRect(x - 8, y - 10, 16, 20);
+    // Head (skin)
+    ctx.fillStyle = '#e67e22';
+    ctx.beginPath();
+    ctx.arc(x, y - 15, 8, 0, Math.PI * 2);
+    ctx.fill();
+    // Hat
+    ctx.fillStyle = hatColor;
+    ctx.beginPath();
+    ctx.arc(x, y - 16, 8, Math.PI, 0);
+    ctx.fill();
+    
+    // Tiny pickaxe
+    ctx.fillStyle = '#7f8c8d';
+    ctx.fillRect(x + 3, y - 12, 10, 3);
+    ctx.fillStyle = '#5d2906';
+    ctx.fillRect(x + 7, y - 16, 2, 16);
+  }
+
+  drawSpeechBubble(ctx, text, x, y) {
+    ctx.font = '12px monospace';
+    const textWidth = ctx.measureText(text).width;
+    const padding = 10;
+    const bubbleWidth = textWidth + padding * 2;
+    const bubbleHeight = 30;
+
+    const screenW = window.innerWidth;
+    let bubbleX = x;
+    if (bubbleX - bubbleWidth / 2 < 10) bubbleX = bubbleWidth / 2 + 10;
+    if (bubbleX + bubbleWidth / 2 > screenW - 10) bubbleX = screenW - bubbleWidth / 2 - 10;
+
+    // Bubble
+    ctx.fillStyle = '#ecf0f1';
+    ctx.beginPath();
+    ctx.roundRect(bubbleX - bubbleWidth / 2, y - bubbleHeight, bubbleWidth, bubbleHeight, 8);
+    ctx.fill();
+    ctx.strokeStyle = '#bdc3c7';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Pointer
+    ctx.beginPath();
+    const mapVal = Math.max(bubbleX - bubbleWidth/2 + 15, Math.min(x, bubbleX + bubbleWidth/2 - 15));
+    ctx.moveTo(mapVal - 6, y - 2);
+    ctx.lineTo(mapVal + 6, y - 2);
+    ctx.lineTo(x, y + 10);
+    ctx.fill();
+    ctx.stroke();
+
+    // Fix pointer overlap using a rectangle patch
+    ctx.fillStyle = '#ecf0f1';
+    ctx.fillRect(mapVal - 5, y - 4, 10, 4);
+
+    // Text
+    ctx.fillStyle = '#2c3e50';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, bubbleX, y - bubbleHeight / 2);
   }
 
   isPlayerNear(player) {
