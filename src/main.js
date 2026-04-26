@@ -46,6 +46,49 @@ let gold = 0;
 let nextSoldierLane = 0;
 let nextEnemyLane = 0;
 
+// XP System
+let playerLevel = 1;
+let playerXP = 0;
+let xpToNextLevel = 100;
+const xpOrbs = [];
+
+class XPOrb {
+  constructor(x, y, value) {
+    this.x = x;
+    this.y = y;
+    this.value = value;
+    this.radius = 4;
+    this.speed = 3 + Math.random() * 2;
+    this.color = '#9b59b6'; // Purple
+    this.active = true;
+  }
+
+  update(target) {
+    const dx = target.x - this.x;
+    const dy = target.y - this.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 15) {
+      this.active = false;
+      return true; // Collected
+    }
+
+    this.x += (dx / dist) * this.speed;
+    this.y += (dy / dist) * this.speed;
+    return false;
+  }
+
+  draw(ctx) {
+    ctx.fillStyle = this.color;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
 const bgCanvas = document.createElement('canvas');
 const bgCtx = bgCanvas.getContext('2d');
 
@@ -358,9 +401,27 @@ function update() {
     if (enemies[i].health <= 0 || enemies[i].x < -100) {
       if (enemies[i].health <= 0) {
         gold += enemies[i].goldReward || 0;
+        // Spawn XP Orbs
+        const xpAmount = Math.floor(Math.random() * 3) + 2; // 2-4 orbs
+        for (let j = 0; j < xpAmount; j++) {
+            xpOrbs.push(new XPOrb(enemies[i].x, enemies[i].y, 5));
+        }
       }
       enemies.splice(i, 1);
     }
+  }
+
+  // Update XP Orbs
+  for (let i = xpOrbs.length - 1; i >= 0; i--) {
+      if (xpOrbs[i].update(player)) {
+          playerXP += xpOrbs[i].value;
+          if (playerXP >= xpToNextLevel) {
+              playerXP -= xpToNextLevel;
+              playerLevel++;
+              xpToNextLevel = Math.floor(xpToNextLevel * 1.5);
+          }
+          xpOrbs.splice(i, 1);
+      }
   }
   for (let i = arrows.length - 1; i >= 0; i--) {
     if (arrows[i].team === 'player') {
@@ -380,21 +441,17 @@ function update() {
 
 function updateHUD() {
   const goldEl = document.getElementById('gold-amount');
-  const healthBar = document.getElementById('base-health-bar');
-  const healthContainer = document.getElementById('base-health-container');
+  const xpBar = document.getElementById('xp-bar');
+  const levelEl = document.getElementById('player-level');
   const invSlots = document.getElementById('inventory-slots');
 
   if (goldEl) goldEl.innerText = Math.floor(gold);
 
-  if (healthBar && upperBase) {
-    const healthPercent = (upperBase.health / upperBase.maxHealth) * 100;
-    healthBar.style.width = `${healthPercent}%`;
-    if (healthContainer) {
-      healthContainer.classList.remove('health-warning', 'health-critical');
-      if (healthPercent < 25) healthContainer.classList.add('health-critical');
-      else if (healthPercent < 50) healthContainer.classList.add('health-warning');
-    }
+  if (xpBar) {
+    const xpPercent = (playerXP / xpToNextLevel) * 100;
+    xpBar.style.width = `${xpPercent}%`;
   }
+  if (levelEl) levelEl.innerText = playerLevel;
 
   if (invSlots && player) {
       invSlots.innerHTML = '';
@@ -444,6 +501,7 @@ function render() {
   enemies.forEach(e => e.draw(ctx, camera));
   arrows.forEach(a => a.draw(ctx, camera));
   stones.forEach(s => s.draw(ctx, camera));
+  xpOrbs.forEach(orb => orb.draw(ctx));
 
   ctx.fillStyle = '#fff';
   ctx.font = '16px monospace';
