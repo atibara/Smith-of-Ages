@@ -12,10 +12,23 @@ export class SiegeWorkshop {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
+    // 3D Depth
+    ctx.fillStyle = '#3e2723'; // Dark background depth layer
+    ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2 + 20, this.width, this.height);
+
     // Building Base
     ctx.fillStyle = this.color;
     ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
     
+    // Roof (Heavy beams) depth
+    ctx.fillStyle = '#1f1311';
+    ctx.beginPath();
+    ctx.moveTo(drawX - this.width / 2 - 10, drawY - this.height / 2 + 5);
+    ctx.lineTo(drawX, drawY - this.height / 2 - 25);
+    ctx.lineTo(drawX + this.width / 2 + 10, drawY - this.height / 2 + 5);
+    ctx.fill();
+    ctx.closePath();
+
     // Roof (Heavy beams)
     ctx.fillStyle = '#3e2723';
     ctx.beginPath();

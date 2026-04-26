@@ -43,6 +43,60 @@ let currentSpawnInterval = ENEMY_SPAWN_INTERVAL_MAX;
 let nextSoldierLane = 0;
 let nextEnemyLane = 0;
 
+const bgCanvas = document.createElement('canvas');
+const bgCtx = bgCanvas.getContext('2d');
+
+function generateBackgroundTexture() {
+  bgCanvas.width = width;
+  bgCanvas.height = height;
+
+  // Upper world (Battlefield)
+  bgCtx.fillStyle = '#2c3e50';
+  bgCtx.fillRect(0, 0, width, UPPER_WORLD_HEIGHT);
+  
+  // Add dirt/battle marks to upper world
+  for(let i=0; i<800; i++) {
+    let rx = Math.random() * width;
+    let ry = Math.random() * UPPER_WORLD_HEIGHT;
+    bgCtx.fillStyle = Math.random() > 0.5 ? '#1a252f' : '#34495e';
+    bgCtx.fillRect(rx, ry, 4 + Math.random()*4, 4 + Math.random()*4);
+  }
+
+  // Lower world (Base grass)
+  bgCtx.fillStyle = '#1e8449'; // Base grassy green
+  bgCtx.fillRect(0, UPPER_WORLD_HEIGHT, width, height - UPPER_WORLD_HEIGHT);
+
+  // Add grass texture
+  for(let i=0; i<2000; i++) {
+    let rx = Math.random() * width;
+    let ry = UPPER_WORLD_HEIGHT + Math.random() * (height - UPPER_WORLD_HEIGHT);
+    bgCtx.fillStyle = Math.random() > 0.5 ? '#27ae60' : '#196f3d';
+    bgCtx.fillRect(rx, ry, 6, 6);
+  }
+
+  const drawBiome = (x, y, r, innerColor, outerColor) => {
+    let grad = bgCtx.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, innerColor);
+    grad.addColorStop(1, outerColor);
+    bgCtx.fillStyle = grad;
+    bgCtx.beginPath();
+    bgCtx.arc(x, y, r, 0, Math.PI * 2);
+    bgCtx.fill();
+  };
+
+  // Rocky area for Mine
+  drawBiome(mine.x, mine.y, 300, 'rgba(127, 140, 141, 0.95)', 'rgba(127, 140, 141, 0)');
+  drawBiome(mine.x, mine.y, 200, 'rgba(96, 105, 107, 0.9)', 'rgba(96, 105, 107, 0)');
+  
+  // Dense forest grass for Forest
+  drawBiome(forest.x, forest.y, 300, 'rgba(21, 67, 32, 0.8)', 'rgba(21, 67, 32, 0)');
+  
+  // Dirt path/area for Smithy & Armory & Workshop
+  drawBiome(smithy.x, smithy.y, 250, 'rgba(110, 44, 0, 0.7)', 'rgba(110, 44, 0, 0)');
+  drawBiome(armory.x, armory.y, 250, 'rgba(110, 44, 0, 0.7)', 'rgba(110, 44, 0, 0)');
+  drawBiome(workshop.x, workshop.y, 250, 'rgba(110, 44, 0, 0.7)', 'rgba(110, 44, 0, 0)');
+}
+
 function resize() {
   width = window.innerWidth;
   height = window.innerHeight;
@@ -70,12 +124,14 @@ function resize() {
   
   enemyBase.x = width - 80;
   enemyBase.y = UPPER_WORLD_HEIGHT / 2;
+
+  generateBackgroundTexture();
 }
 
 window.addEventListener('resize', resize);
 resize();
 player.x = width / 2;
-player.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2 + 50;
+player.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2 + 100; // Increased spacing so player isn't inside smithy bounds at start
 player.targetX = player.x;
 player.targetY = player.y;
 
@@ -211,7 +267,8 @@ function drawGrid() {
 }
 
 function update() {
-  player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height });
+  const obstacles = [smithy, mine, forest, armory, workshop];
+  player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height }, obstacles);
   
   // Calculate dynamic spawn interval based on player proximity to enemy base
   const allPlayerUnits = soldiers.concat(archers);
@@ -302,11 +359,7 @@ function update() {
 }
 
 function render() {
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(0, UPPER_WORLD_HEIGHT, width, height - UPPER_WORLD_HEIGHT);
-  
-  ctx.fillStyle = '#2c3e50';
-  ctx.fillRect(0, 0, width, UPPER_WORLD_HEIGHT);
+  ctx.drawImage(bgCanvas, -camera.x, -camera.y);
   
   ctx.strokeStyle = '#e74c3c';
   ctx.lineWidth = 4;

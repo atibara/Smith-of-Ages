@@ -9,12 +9,25 @@ export class IronMine {
   }
 
   draw(ctx, camera) {
-    // Draw mountain/rock shape
+    const drawX = this.x - camera.x;
+    const drawY = this.y - camera.y;
+
+    // 3D Depth
     ctx.beginPath();
-    ctx.moveTo(this.x - camera.x - this.width / 2, this.y - camera.y + this.height / 2);
-    ctx.lineTo(this.x - camera.x - this.width / 4, this.y - camera.y - this.height / 2);
-    ctx.lineTo(this.x - camera.x + this.width / 4, this.y - camera.y - this.height / 4);
-    ctx.lineTo(this.x - camera.x + this.width / 2, this.y - camera.y + this.height / 2);
+    ctx.moveTo(drawX - this.width / 2, drawY + this.height / 2 + 10);
+    ctx.lineTo(drawX - this.width / 4, drawY - this.height / 2 + 10);
+    ctx.lineTo(drawX + this.width / 4, drawY - this.height / 4 + 10);
+    ctx.lineTo(drawX + this.width / 2, drawY + this.height / 2 + 10);
+    ctx.closePath();
+    ctx.fillStyle = '#616a6b'; // Darker grey for depth
+    ctx.fill();
+
+    // Draw mountain/rock shape main face
+    ctx.beginPath();
+    ctx.moveTo(drawX - this.width / 2, drawY + this.height / 2);
+    ctx.lineTo(drawX - this.width / 4, drawY - this.height / 2);
+    ctx.lineTo(drawX + this.width / 4, drawY - this.height / 4);
+    ctx.lineTo(drawX + this.width / 2, drawY + this.height / 2);
     ctx.closePath();
     
     ctx.fillStyle = this.color;

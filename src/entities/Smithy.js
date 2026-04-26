@@ -18,16 +18,30 @@ export class Smithy {
     ctx.closePath();
     */
 
-    // Draw Smithy building (Anvil / Shop)
+    const drawX = this.x - camera.x;
+    const drawY = this.y - camera.y;
+
+    // Build 3D depth (bottom offset)
     ctx.beginPath();
-    ctx.rect(this.x - camera.x - this.width / 2, this.y - camera.y - this.height / 2, this.width, this.height);
+    ctx.rect(drawX - this.width / 2, drawY - this.height / 2 + 20, this.width, this.height);
+    ctx.fillStyle = '#636e72'; // Darker grey for depth
+    ctx.fill();
+    ctx.closePath();
+
+    // Draw Smithy building (Anvil / Shop) main surface
+    ctx.beginPath();
+    ctx.rect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
     ctx.fillStyle = this.color;
     ctx.fill();
 
+    // Draw 3D shadow for anvil
+    ctx.fillStyle = '#1a252f';
+    ctx.fillRect(drawX - 20, drawY + 15, 40, 20);
+
     // Draw an anvil-like shape inside
     ctx.fillStyle = '#2c3e50';
-    ctx.fillRect(this.x - camera.x - 20, this.y - camera.y + 10, 40, 20);
-    ctx.fillRect(this.x - camera.x - 10, this.y - camera.y, 20, 10);
+    ctx.fillRect(drawX - 20, drawY + 10, 40, 20);
+    ctx.fillRect(drawX - 10, drawY, 20, 10);
     
     ctx.closePath();
     
@@ -35,7 +49,7 @@ export class Smithy {
     ctx.fillStyle = '#fff';
     ctx.font = '16px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('Smithy', this.x - camera.x, this.y - camera.y - this.height / 2 - 10);
+    ctx.fillText('Smithy', drawX, drawY - this.height / 2 - 10);
   }
 
   // Check if player is near enough to forge

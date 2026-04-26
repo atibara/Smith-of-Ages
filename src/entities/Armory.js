@@ -9,17 +9,34 @@ export class Armory {
   }
 
   draw(ctx, camera) {
+    const drawX = this.x - camera.x;
+    const drawY = this.y - camera.y;
+
+    // 3D Depth
+    ctx.beginPath();
+    ctx.rect(drawX - this.width / 2, drawY - this.height / 2 + 20, this.width, this.height);
+    ctx.fillStyle = '#922b21'; // Darker red
+    ctx.fill();
+    ctx.closePath();
+
     // Draw building
     ctx.beginPath();
-    ctx.rect(this.x - camera.x - this.width / 2, this.y - camera.y - this.height / 2, this.width, this.height);
+    ctx.rect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
     ctx.fillStyle = this.color;
     ctx.fill();
     ctx.closePath();
     
+    // Tent entrance depth
+    ctx.fillStyle = '#1a252f';
+    ctx.beginPath();
+    ctx.arc(drawX, drawY + this.height / 2 + 5, 20, Math.PI, 0);
+    ctx.fill();
+    ctx.closePath();
+
     // Draw tent-like entrance
     ctx.fillStyle = '#2c3e50';
     ctx.beginPath();
-    ctx.arc(this.x - camera.x, this.y - camera.y + this.height / 2, 20, Math.PI, 0);
+    ctx.arc(drawX, drawY + this.height / 2, 20, Math.PI, 0);
     ctx.fill();
     ctx.closePath();
 
@@ -27,7 +44,7 @@ export class Armory {
     ctx.fillStyle = '#fff';
     ctx.font = '16px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('Armory', this.x - camera.x, this.y - camera.y - this.height / 2 - 10);
+    ctx.fillText('Armory', drawX, drawY - this.height / 2 - 10);
   }
 
   isPlayerNear(player) {

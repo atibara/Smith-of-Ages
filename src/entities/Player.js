@@ -2,9 +2,9 @@ export class Player {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 30;
-    this.height = 60;
-    this.radius = 15;
+    this.width = 45;
+    this.height = 75;
+    this.radius = 20;
     this.color = '#f39c12';
     this.speed = 4;
     
@@ -30,19 +30,51 @@ export class Player {
     this.isMoving = true;
   }
 
-  update(worldBounds) {
+  update(worldBounds, obstacles = []) {
     if (this.isMoving) {
       const dx = this.targetX - this.x;
       const dy = this.targetY - this.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
+      let nextX = this.x;
+      let nextY = this.y;
+
       if (distance < this.speed) {
-        this.x = this.targetX;
-        this.y = this.targetY;
+        nextX = this.targetX;
+        nextY = this.targetY;
         this.isMoving = false;
       } else {
-        this.x += (dx / distance) * this.speed;
-        this.y += (dy / distance) * this.speed;
+        nextX += (dx / distance) * this.speed;
+        nextY += (dy / distance) * this.speed;
+      }
+
+      // Check collision
+      let collides = false;
+      for (const obs of obstacles) {
+        const obsLeft = obs.x - obs.width / 2;
+        const obsRight = obs.x + obs.width / 2;
+        const obsTop = obs.y - obs.height / 2;
+        const obsBottom = obs.y + obs.height / 2;
+
+        const pLeft = nextX - this.width / 2;
+        const pRight = nextX + this.width / 2;
+        // make collision box slightly smaller than the sprite for better feel
+        const pTop = nextY - this.height / 4; 
+        const pBottom = nextY + this.height / 2;
+
+        if (pRight > obsLeft && pLeft < obsRight && pBottom > obsTop && pTop < obsBottom) {
+           collides = true;
+           break;
+        }
+      }
+
+      if (collides) {
+        this.isMoving = false;
+        this.targetX = this.x;
+        this.targetY = this.y;
+      } else {
+        this.x = nextX;
+        this.y = nextY;
       }
     }
 
