@@ -135,8 +135,33 @@ player.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2 + 100; // Incr
 player.targetX = player.x;
 player.targetY = player.y;
 
+let gameState = 'MENU'; // 'MENU', 'PLAYING', 'EXIT'
+
 // Input handling - keyboard
 window.addEventListener('keydown', (e) => {
+  if (e.code === 'Escape') {
+    if (gameState === 'PLAYING') {
+      gameState = 'MENU';
+      document.getElementById('main-menu').classList.remove('hidden');
+      document.getElementById('btn-play').innerText = 'Devam Et'; // Change 'Play' to 'Resume'
+    } else if (gameState === 'MENU') {
+      const settingsMenu = document.getElementById('settings-menu');
+      const mainMenu = document.getElementById('main-menu');
+      if (!settingsMenu.classList.contains('hidden')) {
+          settingsMenu.classList.add('hidden');
+          mainMenu.classList.remove('hidden');
+      } else if (!mainMenu.classList.contains('hidden')) {
+          if (document.getElementById('btn-play').innerText === 'Devam Et') {
+              mainMenu.classList.add('hidden');
+              gameState = 'PLAYING';
+          }
+      }
+    }
+    return;
+  }
+
+  if (gameState !== 'PLAYING') return;
+  
   if (e.code === 'Space') {
     // 1. Interaction with Mine (Gather Iron)
     if (mine.isPlayerNear(player)) {
@@ -227,6 +252,8 @@ window.addEventListener('keydown', (e) => {
 
 // Input handling
 canvas.addEventListener('mousedown', (e) => {
+  if (gameState !== 'PLAYING') return;
+  
   const rect = canvas.getBoundingClientRect();
   const screenX = e.clientX - rect.left;
   const screenY = e.clientY - rect.top;
@@ -268,6 +295,8 @@ function drawGrid() {
 }
 
 function update() {
+  if (gameState !== 'PLAYING') return;
+
   const obstacles = [smithy, mine, forest, armory, workshop];
   player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height }, obstacles);
   
@@ -476,3 +505,33 @@ function gameLoop() {
 }
 
 gameLoop();
+
+// --- UI EVENT LISTENERS ---
+const mainMenu = document.getElementById('main-menu');
+const settingsMenu = document.getElementById('settings-menu');
+const exitScreen = document.getElementById('exit-screen');
+
+document.getElementById('btn-play').addEventListener('click', () => {
+    mainMenu.classList.add('hidden');
+    gameState = 'PLAYING';
+});
+
+document.getElementById('btn-settings').addEventListener('click', () => {
+    mainMenu.classList.add('hidden');
+    settingsMenu.classList.remove('hidden');
+});
+
+document.getElementById('btn-back-settings').addEventListener('click', () => {
+    settingsMenu.classList.add('hidden');
+    mainMenu.classList.remove('hidden');
+});
+
+document.getElementById('btn-exit').addEventListener('click', () => {
+    mainMenu.classList.add('hidden');
+    exitScreen.classList.remove('hidden');
+});
+
+document.getElementById('btn-back-exit').addEventListener('click', () => {
+    exitScreen.classList.add('hidden');
+    mainMenu.classList.remove('hidden');
+});

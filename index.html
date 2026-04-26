@@ -10,6 +10,51 @@
   <body>
     <div id="app">
       <canvas id="gameCanvas"></canvas>
+      
+      <!-- Main UI Container -->
+      <div id="ui-container">
+        <!-- Main Menu -->
+        <div id="main-menu" class="menu-screen">
+          <div class="menu-content">
+            <h1 class="game-title">Smith of Ages</h1>
+            <p class="game-subtitle">Forged in Battle</p>
+            <div class="menu-buttons">
+              <button id="btn-play" class="btn-primary">Oyna</button>
+              <button id="btn-settings" class="btn-secondary">Ayarlar</button>
+              <button id="btn-exit" class="btn-danger">Çıkış</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Menu -->
+        <div id="settings-menu" class="menu-screen hidden">
+          <div class="menu-content">
+            <h2>Ayarlar</h2>
+            <div class="settings-group">
+              <label>Genel Ses</label>
+              <input type="range" min="0" max="100" value="70">
+            </div>
+            <div class="settings-group">
+              <label>Zorluk Seviyesi</label>
+              <select>
+                <option>Kolay</option>
+                <option selected>Normal</option>
+                <option>Zor</option>
+              </select>
+            </div>
+            <button id="btn-back-settings" class="btn-secondary mt-2">Geri Dön</button>
+          </div>
+        </div>
+
+        <!-- Exit Screen -->
+        <div id="exit-screen" class="menu-screen hidden">
+          <div class="menu-content">
+            <h2>Oynadığınız İçin Teşekkürler!</h2>
+            <p>Sekmeyi güvenle kapatabilirsiniz.</p>
+            <button id="btn-back-exit" class="btn-secondary mt-2">Ana Menüye Dön</button>
+          </div>
+        </div>
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>
