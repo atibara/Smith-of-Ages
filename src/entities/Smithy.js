@@ -72,6 +72,16 @@ export class Smithy {
     ctx.fill();
   }
 
+  drawUI(ctx, camera, player) {
+    if (player && this.isPlayerNear(player)) {
+      const drawX = this.x - camera.x;
+      const drawY = this.y - camera.y;
+      const npcX = drawX + 35;
+      const npcY = drawY + this.height / 2 + 10;
+      this.drawSpeechBubble(ctx, "Welcome to the Smithy! I forge weapons from iron.", npcX, npcY - 25);
+    }
+  }
+
   drawSpeechBubble(ctx, text, x, y) {
     ctx.font = '12px monospace';
     const textWidth = ctx.measureText(text).width;

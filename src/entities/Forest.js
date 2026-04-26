@@ -29,10 +29,6 @@ export class Forest {
     const npcY = drawY + this.height / 2 + 10;
     this.drawNPC(ctx, npcX, npcY, '#c0392b', '#f39c12');
 
-    if (player && this.isPlayerNear(player)) {
-      this.drawSpeechBubble(ctx, "I'm the Lumberjack! The Forest provides excellent wood.", npcX, npcY - 25);
-    }
-
     // Label
     ctx.fillStyle = '#fff';
     ctx.font = '16px monospace';
@@ -54,6 +50,16 @@ export class Forest {
     ctx.fillRect(x + 5, y - 10, 8, 4);
     ctx.fillStyle = '#5d2906';
     ctx.fillRect(x + 7, y - 15, 2, 16);
+  }
+
+  drawUI(ctx, camera, player) {
+    if (player && this.isPlayerNear(player)) {
+      const drawX = this.x - camera.x;
+      const drawY = this.y - camera.y;
+      const npcX = drawX + 40;
+      const npcY = drawY + this.height / 2 + 10;
+      this.drawSpeechBubble(ctx, "I'm the Lumberjack! The Forest provides excellent wood.", npcX, npcY - 25);
+    }
   }
 
   drawSpeechBubble(ctx, text, x, y) {

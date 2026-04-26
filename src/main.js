@@ -332,7 +332,7 @@ function update() {
 
   // Update enemies
   for (let i = enemies.length - 1; i >= 0; i--) {
-    enemies[i].update(enemies, allPlayerUnits.concat(mangonels), upperBase, arrows);
+    enemies[i].update(enemies, allPlayerUnits.concat(mangonels.filter(m => m.state === 'COMBAT')), upperBase, arrows);
     if (enemies[i].health <= 0 || enemies[i].x < -100) {
       enemies.splice(i, 1);
     }
@@ -378,6 +378,13 @@ function render() {
   smithy.draw(ctx, camera, player);
   armory.draw(ctx, camera, player);
   player.draw(ctx, camera);
+  
+  // Draw top UI layer for buildings
+  mine.drawUI(ctx, camera, player);
+  forest.drawUI(ctx, camera, player);
+  workshop.drawUI(ctx, camera, player);
+  smithy.drawUI(ctx, camera, player);
+  armory.drawUI(ctx, camera, player);
   
   // Draw following mangonels in Lower World
   mangonels.filter(m => m.state === 'FOLLOWING').forEach(m => m.draw(ctx, camera));

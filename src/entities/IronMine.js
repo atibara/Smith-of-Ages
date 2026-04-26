@@ -43,10 +43,6 @@ export class IronMine {
     const npcY = drawY + this.height / 2 + 10;
     this.drawNPC(ctx, npcX, npcY, '#95a5a6', '#f39c12'); // grey uniform, yellow hard hat
 
-    if (player && this.isPlayerNear(player)) {
-      this.drawSpeechBubble(ctx, "Greetings! This Iron Mine holds sturdy iron ores.", npcX, npcY - 25);
-    }
-
     // Label
     ctx.fillStyle = '#fff';
     ctx.font = '16px monospace';
@@ -74,6 +70,16 @@ export class IronMine {
     ctx.fillRect(x + 3, y - 12, 10, 3);
     ctx.fillStyle = '#5d2906';
     ctx.fillRect(x + 7, y - 16, 2, 16);
+  }
+
+  drawUI(ctx, camera, player) {
+    if (player && this.isPlayerNear(player)) {
+      const drawX = this.x - camera.x;
+      const drawY = this.y - camera.y;
+      const npcX = drawX + 35;
+      const npcY = drawY + this.height / 2 + 10;
+      this.drawSpeechBubble(ctx, "Greetings! This Iron Mine holds sturdy iron ores.", npcX, npcY - 25);
+    }
   }
 
   drawSpeechBubble(ctx, text, x, y) {

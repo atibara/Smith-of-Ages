@@ -45,10 +45,6 @@ export class Armory {
     const npcY = drawY + this.height / 2 + 10;
     this.drawNPC(ctx, npcX, npcY, '#c0392b', '#e67e22'); // dark red uniform
 
-    if (player && this.isPlayerNear(player)) {
-      this.drawSpeechBubble(ctx, "Armory Quartermaster! Deliver gear to arm our troops.", npcX, npcY - 25);
-    }
-
     // Label
     ctx.fillStyle = '#fff';
     ctx.font = '16px monospace';
@@ -68,6 +64,16 @@ export class Armory {
     // Tiny sword/stick
     ctx.fillStyle = '#bdc3c7';
     ctx.fillRect(x + 5, y - 12, 2, 12);
+  }
+
+  drawUI(ctx, camera, player) {
+    if (player && this.isPlayerNear(player)) {
+      const drawX = this.x - camera.x;
+      const drawY = this.y - camera.y;
+      const npcX = drawX + 35;
+      const npcY = drawY + this.height / 2 + 10;
+      this.drawSpeechBubble(ctx, "Armory Quartermaster! Deliver gear to arm our troops.", npcX, npcY - 25);
+    }
   }
 
   drawSpeechBubble(ctx, text, x, y) {

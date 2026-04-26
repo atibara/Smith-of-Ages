@@ -50,10 +50,6 @@ export class SiegeWorkshop {
     const npcY = drawY + this.height / 2 + 10;
     this.drawNPC(ctx, npcX, npcY, '#8e44ad', '#e67e22'); // purple-ish clothes
 
-    if (player && this.isPlayerNear(player)) {
-      this.drawSpeechBubble(ctx, "Siege Engineer! Bring materials to build Mangonels.", npcX, npcY - 25);
-    }
-
     // Label
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 16px monospace';
@@ -74,6 +70,16 @@ export class SiegeWorkshop {
     ctx.fillStyle = '#7f8c8d';
     ctx.fillRect(x + 5, y - 12, 4, 10);
     ctx.fillRect(x + 3, y - 12, 8, 3);
+  }
+
+  drawUI(ctx, camera, player) {
+    if (player && this.isPlayerNear(player)) {
+      const drawX = this.x - camera.x;
+      const drawY = this.y - camera.y;
+      const npcX = drawX + 45;
+      const npcY = drawY + this.height / 2 + 10;
+      this.drawSpeechBubble(ctx, "Siege Engineer! Bring materials to build Mangonels.", npcX, npcY - 25);
+    }
   }
 
   drawSpeechBubble(ctx, text, x, y) {

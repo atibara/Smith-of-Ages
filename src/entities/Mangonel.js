@@ -27,6 +27,10 @@ export class Mangonel {
     this.id = Math.random();
   }
 
+  takeDamage(amount) {
+    this.health -= amount;
+  }
+
   update(allMangonels, allEnemies, enemyBase, stones, player, allOthers = []) {
     if (this.health <= 0) return;
 
