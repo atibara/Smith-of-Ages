@@ -1,3 +1,5 @@
+import { Pathfinder } from '../Pathfinder.js';
+
 export class Player {
   constructor(x, y) {
     this.x = x;
@@ -11,6 +13,7 @@ export class Player {
     this.targetX = x;
     this.targetY = y;
     this.isMoving = false;
+    this.path = [];
     
     this.inventory = [];
     this.maxInventory = 5;
@@ -24,10 +27,21 @@ export class Player {
     this.lastAnimTime = Date.now();
   }
 
-  setTarget(x, y) {
-    this.targetX = x;
-    this.targetY = y;
-    this.isMoving = true;
+  setTarget(x, y, obstacles = [], worldBounds = null) {
+    if (worldBounds) {
+      this.path = Pathfinder.findPath(this.x, this.y, x, y, obstacles, worldBounds, this.width / 2);
+      if (this.path.length > 0) {
+         this.isMoving = true;
+         this.targetX = this.path[0].x;
+         this.targetY = this.path[0].y;
+      } else {
+         this.isMoving = false;
+      }
+    } else {
+      this.targetX = x;
+      this.targetY = y;
+      this.isMoving = true;
+    }
   }
 
   update(worldBounds, obstacles = []) {
@@ -42,7 +56,21 @@ export class Player {
       if (distance < this.speed) {
         nextX = this.targetX;
         nextY = this.targetY;
-        this.isMoving = false;
+        
+        if (this.path.length > 0) {
+            this.path.shift();
+            if (this.path.length > 0) {
+                this.targetX = this.path[0].x;
+                this.targetY = this.path[0].y;
+                // Don't stop moving, continue to next frame logic
+                nextX = this.x;
+                nextY = this.y;
+            } else {
+                this.isMoving = false;
+            }
+        } else {
+            this.isMoving = false;
+        }
       } else {
         nextX += (dx / distance) * this.speed;
         nextY += (dy / distance) * this.speed;
@@ -70,6 +98,7 @@ export class Player {
 
       if (collides) {
         this.isMoving = false;
+        this.path = [];
         this.targetX = this.x;
         this.targetY = this.y;
       } else {

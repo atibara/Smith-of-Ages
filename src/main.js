@@ -235,7 +235,8 @@ canvas.addEventListener('mousedown', (e) => {
   const worldX = screenX + camera.x;
   const worldY = screenY + camera.y;
   
-  player.setTarget(worldX, worldY);
+  const obstacles = [smithy, mine, forest, armory, workshop];
+  player.setTarget(worldX, worldY, obstacles, { minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height });
 });
 
 function drawGrid() {
