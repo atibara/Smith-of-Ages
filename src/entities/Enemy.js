@@ -15,9 +15,41 @@ export class Enemy {
     this.maxHealth = 80;
     this.attackDamage = 8;
     this.attackDelay = 1200;
+    this.lastAttack = 0;
     this.lastLaneSwitch = 0;
     this.id = Math.random();
     this.goldReward = 10;
+
+    // Animation State
+    this.animTimer = Math.random() * 10;
+    this.currentFrame = 0;
+    this.currentRow = 0; // 0: Walk, 1: Attack
+    this.isMoving = false;
+    this.isAttacking = false;
+
+    this.sprite = new Image();
+    this.processedSprite = null;
+    this.sprite.onload = () => {
+        this.processedSprite = this.removeWhiteBackground(this.sprite);
+    };
+    this.sprite.src = 'assets/soldier_red.png';
+  }
+
+  removeWhiteBackground(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] > 250 && data[i+1] > 250 && data[i+2] > 250) {
+        data[i+3] = 0;
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
   }
 
   takeDamage(amount) {
@@ -76,24 +108,32 @@ export class Enemy {
           if (now - this.lastAttack > this.attackDelay) {
             closestPlayer.takeDamage(this.attackDamage);
             this.lastAttack = now;
+            this.isAttacking = true;
           }
           canMove = false;
+        } else {
+            this.isAttacking = false;
         }
       } else {
+        this.isAttacking = false;
         // Target is in another lane, switch to it!
         if (Date.now() - this.lastLaneSwitch > 500) {
           this.lane = closestPlayer.lane;
           this.lastLaneSwitch = Date.now();
         }
       }
+    } else {
+        this.isAttacking = false;
     }
 
     // 5. Base detection (always hits base if close enough)
-    if (canMove && upperBase && this.x < upperBase.x + upperBase.width / 2 + attackRange) {
+    const distToBase = upperBase ? Math.abs(upperBase.x - this.x) : Infinity;
+    if (upperBase && distToBase < upperBase.width / 2 + attackRange) {
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
         upperBase.health = Math.max(0, upperBase.health - this.attackDamage);
         this.lastAttack = now;
+        this.isAttacking = true;
       }
       canMove = false;
     }
@@ -135,7 +175,12 @@ export class Enemy {
 
       if (canMove) {
         this.x -= currentSpeed;
+        this.isMoving = true;
+      } else {
+        this.isMoving = false;
       }
+    } else {
+        this.isMoving = false;
     }
 
     // Anti-overlap logic for same lane
@@ -160,30 +205,61 @@ export class Enemy {
         this.y += Math.sign(diff) * this.speed * 2;
       }
     }
+
+    // Animation update
+    const now = Date.now();
+    if (this.isAttacking) {
+        this.currentRow = 1;
+        const attackProgress = (now - this.lastAttack) / this.attackDelay;
+        this.currentFrame = Math.floor(attackProgress * 2) % 2; // 2 frames for attack
+    } else if (this.isMoving) {
+        this.currentRow = 0;
+        this.animTimer += 0.1;
+        this.currentFrame = Math.floor(this.animTimer) % 2; // 2 frames for walking
+    } else {
+        this.currentRow = 0;
+        this.currentFrame = 0;
+    }
   }
 
   draw(ctx, camera) {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // Draw health bar
+    // Health bar
     const barWidth = 30;
     const barHeight = 4;
-    ctx.fillStyle = '#c0392b';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth, barHeight);
-    ctx.fillStyle = '#2ecc71';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth * (this.health / this.maxHealth), barHeight);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 15, barWidth, barHeight);
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 15, barWidth * (this.health / this.maxHealth), barHeight);
 
-    // Draw enemy
-    ctx.beginPath();
-    ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, 5);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-    
-    // Draw a small axe or weapon visually
-    ctx.fillStyle = '#7f8c8d';
-    ctx.fillRect(drawX - this.width / 2 - 15, drawY - 5, 15, 5);
-    ctx.fillRect(drawX - this.width / 2 - 15, drawY - 10, 5, 15);
-    ctx.closePath();
+    if (this.processedSprite) {
+        // High-res sprite sheet (1024x1024, 2x2 grid)
+        const frameWidth = 512;
+        const frameHeight = 512;
+        const renderSize = 54;
+
+        ctx.save();
+        ctx.translate(drawX, drawY);
+        ctx.scale(-1, 1); // Flip to face left
+
+        ctx.drawImage(
+            this.processedSprite,
+            this.currentFrame * frameWidth,
+            this.currentRow * frameHeight,
+            frameWidth,
+            frameHeight,
+            -renderSize / 2,
+            -renderSize / 2,
+            renderSize,
+            renderSize
+        );
+        ctx.restore();
+    } else {
+        // Fallback
+        ctx.fillStyle = this.color;
+        ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
+    }
   }
 }

@@ -18,6 +18,38 @@ export class Soldier {
     this.lastAttack = 0;
     this.lastLaneSwitch = 0;
     this.id = Math.random();
+    
+    // Animation State
+    this.animTimer = 0;
+    this.currentFrame = 0;
+    this.currentRow = 0; // 0: Walk, 1: Attack
+    this.isMoving = false;
+    this.isAttacking = false;
+
+    this.sprite = new Image();
+    this.processedSprite = null;
+    this.sprite.onload = () => {
+        this.processedSprite = this.removeWhiteBackground(this.sprite);
+    };
+    this.sprite.src = 'assets/soldier_blue.png';
+  }
+
+  removeWhiteBackground(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      // Target pure or near-pure white
+      if (data[i] > 250 && data[i+1] > 250 && data[i+2] > 250) {
+        data[i+3] = 0;
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
   }
 
   takeDamage(amount) {
@@ -90,14 +122,19 @@ export class Soldier {
       }
     }
 
-    // 5. Base detection
-    if (canMove && enemyBase && this.x > enemyBase.x - enemyBase.width / 2 - attackRange) {
+    // 5. Base detection (Fix: Allow attacking even if partially blocked)
+    const distToBase = enemyBase ? Math.abs(enemyBase.x - this.x) : Infinity;
+    if (enemyBase && distToBase < enemyBase.width / 2 + attackRange) {
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
         enemyBase.health = Math.max(0, enemyBase.health - this.attackDamage);
         this.lastAttack = now;
+        this.isAttacking = true;
+        this.lastAttackTime = now;
       }
       canMove = false;
+    } else {
+        this.isAttacking = false;
     }
 
     // 6. Teammate collision and dynamic lane avoiding
@@ -139,7 +176,12 @@ export class Soldier {
 
       if (canMove) {
         this.x += currentSpeed;
+        this.isMoving = true;
+      } else {
+        this.isMoving = false;
       }
+    } else {
+      this.isMoving = false;
     }
 
     // Anti-overlap logic for same lane
@@ -164,29 +206,55 @@ export class Soldier {
         this.y += Math.sign(diff) * this.speed * 2;
       }
     }
+
+    // Animation update
+    const now = Date.now();
+    if (this.isAttacking) {
+        this.currentRow = 1;
+        const attackProgress = (now - this.lastAttack) / this.attackDelay;
+        this.currentFrame = Math.floor(attackProgress * 2) % 2; // 2 frames for attack
+    } else if (this.isMoving) {
+        this.currentRow = 0;
+        this.animTimer += 0.1;
+        this.currentFrame = Math.floor(this.animTimer) % 2; // 2 frames for walking
+    } else {
+        this.currentRow = 0;
+        this.currentFrame = 0; 
+    }
   }
 
   draw(ctx, camera) {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // Draw health bar
+    // Health bar
     const barWidth = 30;
     const barHeight = 4;
-    ctx.fillStyle = '#c0392b';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth, barHeight);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 15, barWidth, barHeight);
     ctx.fillStyle = '#2ecc71';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth * (this.health / this.maxHealth), barHeight);
+    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 15, barWidth * (this.health / this.maxHealth), barHeight);
 
-    // Draw soldier
-    ctx.beginPath();
-    ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, 5);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-    
-    // Draw a small sword visually
-    ctx.fillStyle = '#bdc3c7';
-    ctx.fillRect(drawX + this.width / 2, drawY - 5, 20, 5);
-    ctx.closePath();
+    if (this.processedSprite) {
+        // High-res sprite sheet (1024x1024, 2x2 grid)
+        const frameWidth = 512;
+        const frameHeight = 512;
+        const renderSize = 54; 
+
+        ctx.drawImage(
+            this.processedSprite,
+            this.currentFrame * frameWidth,
+            this.currentRow * frameHeight,
+            frameWidth,
+            frameHeight,
+            drawX - renderSize / 2,
+            drawY - renderSize / 2,
+            renderSize,
+            renderSize
+        );
+    } else {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
+    }
   }
 }

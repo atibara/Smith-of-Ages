@@ -21,11 +21,32 @@ export class Player {
 
     // --- SPRITE ANIMATION ---
     this.image = new Image();
+    this.processedImage = null;
+    this.image.onload = () => {
+        this.processedImage = this.removeWhiteBackground(this.image);
+    };
     this.image.src = 'assets/player.png'; // Path to the player sprite
     this.currentFrame = 0;
     this.currentRow = 0;
     this.animationSpeed = 100; // Frame transition speed (ms)
     this.lastAnimTime = Date.now();
+  }
+
+  removeWhiteBackground(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] > 250 && data[i+1] > 250 && data[i+2] > 250) {
+        data[i+3] = 0;
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
   }
 
   setTarget(x, y, obstacles = [], worldBounds = null) {
@@ -118,42 +139,38 @@ export class Player {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    if (this.image.complete && this.image.naturalWidth !== 0) {
+    if (this.processedImage) {
       // SPRITE DRAWING
-      // The provided image seems to consist of about 7 columns and 4-5 rows.
-      // You can change these numbers according to the exact structure of the image.
       const cols = 7;  
       const rows = 4; 
-      const frameWidth = this.image.naturalWidth / cols;
-      const frameHeight = this.image.naturalHeight / rows;
+      const frameWidth = this.processedImage.width / cols;
+      const frameHeight = this.processedImage.height / rows;
 
       if (this.isMoving) {
         const now = Date.now();
         if (now - this.lastAnimTime > this.animationSpeed) {
-          // The first frame is usually idle, walking starts from frame 1
           this.currentFrame = ((this.currentFrame + 1) % (cols - 1)) + 1; 
           this.lastAnimTime = now;
         }
         
-        // Determine row based on movement angle
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         
         if (Math.abs(dx) > Math.abs(dy)) {
-          this.currentRow = dx > 0 ? 3 : 2; // Row 3 for right, row 2 for left
+          this.currentRow = dx > 0 ? 3 : 2; 
         } else {
-          this.currentRow = dy > 0 ? 1 : 2; // Row 1 for down, row 2 for up/left
+          this.currentRow = dy > 0 ? 1 : 2; 
         }
       } else {
-        this.currentFrame = 0; // First frame when stopped
-        this.currentRow = 0;   // First row when stopped
+        this.currentFrame = 0; 
+        this.currentRow = 0;   
       }
       
-      const renderWidth = this.width; // Display size on screen
+      const renderWidth = this.width; 
       const renderHeight = this.height;
 
       ctx.drawImage(
-        this.image,
+        this.processedImage,
         this.currentFrame * frameWidth,
         this.currentRow * frameHeight,
         frameWidth,
