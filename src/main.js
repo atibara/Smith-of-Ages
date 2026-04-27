@@ -37,6 +37,7 @@ const ctx = canvas.getContext('2d');
 // --- FIXED VIRTUAL RESOLUTION ---
 let width = 1200;
 let height = 800;
+const HUD_OFFSET = 80;
 
 const player = new Player(400, 300);
 const smithy = new Smithy(400, 300);
@@ -194,25 +195,24 @@ function resize() {
   canvas.height = height;
   ctx.imageSmoothingEnabled = false;
   
-  const midY = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2;
-  
   // --- Resource District (West) ---
   forest.x = 180;
   forest.y = UPPER_WORLD_HEIGHT + 120;
   mine.x = 180;
-  mine.y = height - 160;
+  mine.y = (height - HUD_OFFSET) - 160;
 
   // --- Military District (East) ---
   armory.x = width - 180;
   armory.y = UPPER_WORLD_HEIGHT + 120;
   workshop.x = width - 180;
-  workshop.y = height - 160;
+  workshop.y = (height - HUD_OFFSET) - 160;
 
   // --- Village Center (Center) ---
+  const lowerWorldCenterY = UPPER_WORLD_HEIGHT + (height - HUD_OFFSET - UPPER_WORLD_HEIGHT) / 2;
   smithy.x = width / 2;
-  smithy.y = midY - 120; // Moved further up
+  smithy.y = lowerWorldCenterY - 120; 
   market.x = width / 2 - 150;
-  market.y = midY + 140; // Moved further down
+  market.y = lowerWorldCenterY + 140; 
 
   // --- Battlefield Bases ---
   upperBase.x = 80;
@@ -353,10 +353,9 @@ canvas.addEventListener('mousedown', (e) => {
   const screenX = (e.clientX - rect.left) * scaleX;
   const screenY = (e.clientY - rect.top) * scaleY;
   const worldX = screenX + camera.x;
-  const worldY = screenY + camera.y;
+  const worldY = screenY + camera.y - HUD_OFFSET; // Account for HUD translation
   const obstacles = [smithy, mine, forest, armory, workshop, market];
-  // Subtract 80px from maxY for HUD area
-  player.setTarget(worldX, worldY, obstacles, { minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height - 80 });
+  player.setTarget(worldX, worldY, obstacles, { minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height - HUD_OFFSET - 20 });
 });
 
 function drawGrid() {
@@ -387,8 +386,7 @@ function update() {
   if (gameState !== 'PLAYING' && gameState !== 'SHOPPING') return;
 
   const obstacles = [smithy, mine, forest, armory, workshop, market];
-  // Subtract 80px from maxY for HUD area
-  player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height - 80 }, obstacles);
+  player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height - HUD_OFFSET - 20 }, obstacles);
   
   const isTowing = mangonels.some(m => m.state === 'FOLLOWING');
   player.speedBase = player.speedBase || 2.5;
@@ -529,6 +527,10 @@ function updateHUD() {
 }
 
 function render() {
+  ctx.clearRect(0, 0, width, height); // Clear whole canvas
+  ctx.save();
+  ctx.translate(0, HUD_OFFSET); // Move the game world down
+
   ctx.drawImage(bgCanvas, -camera.x, -camera.y);
   ctx.strokeStyle = '#e74c3c';
   ctx.lineWidth = 4;
@@ -601,6 +603,8 @@ function render() {
     else if (hasBow) ctx.fillText('Press SPACE to deliver bow', armory.x, armory.y + armory.height / 2 + 20);
     else ctx.fillText('Need Sword, Bow or Follower Mangonel!', armory.x, armory.y + armory.height / 2 + 20);
   }
+
+  ctx.restore(); // Restore context to draw screen-space overlays (Defeat/Victory)
 
   if (upperBase.health <= 0) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
