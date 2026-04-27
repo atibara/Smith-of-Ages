@@ -20,7 +20,7 @@ export class EnemyArcher {
     this.attackDamage = 8;
     this.attackDelay = 1800; // Slower attack rate
     this.lastAttack = 0;
-    this.attackRange = 100;
+    this.attackRange = 180;
     this.arrowLimit = 200;
     this.range = this.attackRange;
     this.lastLaneSwitch = 0;
@@ -50,14 +50,11 @@ export class EnemyArcher {
     return canvas;
   }
 
-  takeDamage(amount, effectsArray) {
+  takeDamage(amount) {
     this.health -= amount;
-    if (effectsArray) {
-      effectsArray.push({ x: this.x, y: this.y - 20, text: `-${Math.floor(amount)}`, color: '#e74c3c' });
-    }
   }
 
-  update(allEnemies, allPlayers, playerBase, arrows, damageEffects = []) {
+  update(allEnemies, allPlayers, playerBase, arrows) {
     if (this.health <= 0) return;
 
     let canMove = true;
