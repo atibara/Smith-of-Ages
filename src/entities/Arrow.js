@@ -6,9 +6,13 @@ export class Arrow {
     this.lane = lane;
     this.speed = team === 'player' ? 5 : -5;
     this.damage = damage;
-    this.width = 15;
-    this.height = 3;
+    this.width = 40;
+    this.height = 40;
     this.active = true;
+    this.spawnX = x;
+    this.maxRange = 400; // Arrows disappear after 400 pixels
+    this.sprite = new Image();
+    this.sprite.src = 'assets/Tiny RPG Character Asset Pack v1.03 -Free Soldier&Orc/Arrow(Projectile)/Arrow01(100x100).png';
   }
 
   update(targets, targetBase) {
@@ -35,8 +39,8 @@ export class Arrow {
       this.active = false;
     }
 
-    // Deactivate if offscreen
-    if (this.x > window.innerWidth + 100 || this.x < -100) {
+    // Deactivate if too far or offscreen
+    if (Math.abs(this.x - this.spawnX) > this.maxRange || this.x > 2000 || this.x < -100) {
       this.active = false;
     }
   }
@@ -45,17 +49,16 @@ export class Arrow {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    ctx.fillStyle = '#ecf0f1';
-    ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
-    
-    // Arrow head
-    ctx.fillStyle = this.team === 'player' ? '#7f8c8d' : '#e74c3c';
-    ctx.beginPath();
-    const headDir = this.team === 'player' ? 1 : -1;
-    ctx.moveTo(drawX + (this.width / 2) * headDir, drawY);
-    ctx.lineTo(drawX + (this.width / 2 - 5) * headDir, drawY - 4);
-    ctx.lineTo(drawX + (this.width / 2 - 5) * headDir, drawY + 4);
-    ctx.fill();
-    ctx.closePath();
+    // Draw sprite if loaded, fallback to rect
+    if (this.sprite.complete) {
+      ctx.save();
+      ctx.translate(drawX, drawY);
+      if (this.team === 'enemy') ctx.scale(-1, 1);
+      ctx.drawImage(this.sprite, -this.width / 2, -this.height / 2, this.width, this.height);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = '#ecf0f1';
+      ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
+    }
   }
 }

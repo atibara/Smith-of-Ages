@@ -20,7 +20,7 @@ export class Archer {
     this.attackDamage = 15;
     this.attackDelay = 1500;
     this.lastAttack = 0;
-    this.range = 350;
+    this.range = 300; // Reduced range to match new limit
     this.lastLaneSwitch = 0;
     this.id = Math.random();
     this.animTimer = 0;
@@ -121,10 +121,19 @@ export class Archer {
 
     if (targetX !== -1) {
       const now = Date.now();
-      if (now - this.lastAttack > this.attackDelay) {
+      const timeSinceAttack = now - this.lastAttack;
+      
+      // Trigger attack every attackDelay
+      if (timeSinceAttack > this.attackDelay) {
+        this.lastAttack = now;
+        this.hasFiredInCycle = false;
+      }
+      
+      // Spawn arrow at midpoint of animation (approx 250ms into a 500ms anim)
+      if (timeSinceAttack > 250 && !this.hasFiredInCycle) {
         const newArrow = new Arrow(this.x + 10, targetY, this.attackDamage, 'player', targetLane);
         arrows.push(newArrow);
-        this.lastAttack = now;
+        this.hasFiredInCycle = true;
       }
     }
 

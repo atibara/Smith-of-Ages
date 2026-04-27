@@ -27,6 +27,7 @@ export class EnemyArcher {
     this.animTimer = 0;
     this.currentFrame = 0;
     this.currentRow = 0;
+    this.hasFiredInCycle = false;
   }
 
   removeWhiteBackground(img) {
@@ -87,7 +88,7 @@ export class EnemyArcher {
       targetY = LANE_Y[targetLane];
       canMove = false;
 
-      if (minXDist < 120 && this.x < window.innerWidth - 100) {
+      if (minXDist < 120 && this.x < 1200 - 100) {
         let backPathClear = true;
         for (const other of allEnemies) {
           if (other.lane === this.lane && other.x > this.x && other.x - this.x < this.width + padding) {
@@ -108,10 +109,15 @@ export class EnemyArcher {
 
     if (targetX !== -1) {
       const now = Date.now();
-      if (now - this.lastAttack > this.attackDelay) {
+      const timeSinceAttack = now - this.lastAttack;
+      if (timeSinceAttack > this.attackDelay) {
+        this.lastAttack = now;
+        this.hasFiredInCycle = false;
+      }
+      if (timeSinceAttack > 250 && !this.hasFiredInCycle) {
         const newArrow = new Arrow(this.x - 10, targetY, this.attackDamage, 'enemy', targetLane);
         arrows.push(newArrow);
-        this.lastAttack = now;
+        this.hasFiredInCycle = true;
       }
     } else {
       let blockedByTeammate = false;
