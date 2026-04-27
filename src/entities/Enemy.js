@@ -150,7 +150,11 @@ export class Enemy {
         }
       }
 
-      if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 500) {
+      // Only consider lane switching to bypass teammates if we are NOT in combat 
+      // and NOT near a player we could be fighting.
+      const shouldBypass = blockedByTeammate && !closestPlayer && Date.now() - this.lastLaneSwitch > 1000;
+
+      if (shouldBypass) {
         const candidateLanes = [];
         if (this.lane > 0) candidateLanes.push(this.lane - 1);
         if (this.lane < LANE_Y.length - 1) candidateLanes.push(this.lane + 1);

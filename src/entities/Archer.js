@@ -28,6 +28,7 @@ export class Archer {
     this.animTimer = 0;
     this.currentFrame = 0;
     this.currentRow = 0;
+    this.isNearTeammate = false;
   }
 
   removeWhiteBackground(img) {
@@ -72,8 +73,8 @@ export class Archer {
 
     // 1. Morale Boost
     let currentSpeed = this.speed;
-    const isNearTeammate = allTeammates.some(other => other !== this && Math.abs(other.x - this.x) < 100);
-    if (isNearTeammate) {
+    this.isNearTeammate = allTeammates.some(other => other !== this && Math.abs(other.x - this.x) < 100);
+    if (this.isNearTeammate) {
       currentSpeed *= 1.15;
     }
 
@@ -229,6 +230,19 @@ export class Archer {
   draw(ctx, camera) {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
+
+    // Draw Morale Aura if active
+    if (this.isNearTeammate) {
+      ctx.save();
+      const glow = ctx.createRadialGradient(drawX, drawY + 10, 0, drawX, drawY + 10, 35);
+      glow.addColorStop(0, 'rgba(52, 152, 219, 0.4)');
+      glow.addColorStop(1, 'rgba(52, 152, 219, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(drawX, drawY + 10, 35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
     const barWidth = 40;
     const barHeight = 6;

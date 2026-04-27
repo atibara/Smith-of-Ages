@@ -25,6 +25,7 @@ export class Mangonel {
     this.minRange = 150;
     this.lastLaneSwitch = 0;
     this.id = Math.random();
+    this.isNearTeammate = false;
   }
 
   takeDamage(amount, effectsArray) {
@@ -58,8 +59,8 @@ export class Mangonel {
 
       // Morale Boost
       let currentSpeed = this.speed;
-      const isNearTeammate = allTeammates.some(other => other !== this && Math.abs(other.x - this.x) < 100);
-      if (isNearTeammate) currentSpeed *= 1.15;
+      this.isNearTeammate = allTeammates.some(other => other !== this && Math.abs(other.x - this.x) < 100);
+      if (this.isNearTeammate) currentSpeed *= 1.15;
 
       // Find closest enemy horizontally
       let closestEnemy = null;
@@ -155,6 +156,19 @@ export class Mangonel {
   draw(ctx, camera) {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
+
+    // Draw Morale Aura if active
+    if (this.isNearTeammate) {
+      ctx.save();
+      const glow = ctx.createRadialGradient(drawX, drawY + 10, 0, drawX, drawY + 10, 45);
+      glow.addColorStop(0, 'rgba(52, 152, 219, 0.4)');
+      glow.addColorStop(1, 'rgba(52, 152, 219, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(drawX, drawY + 10, 45, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
     // Only draw health bar in combat
     if (this.state === 'COMBAT') {

@@ -55,6 +55,8 @@ const arrows = [];
 const stones = [];
 const camera = { x: 0, y: 0 };
 
+
+
 // Enemy Spawning
 let lastEnemySpawn = Date.now();
 const ENEMY_SPAWN_INTERVAL_MAX = 8000; 
@@ -146,51 +148,45 @@ function generateBackgroundTexture() {
   bgCanvas.width = width;
   bgCanvas.height = height;
 
-  // Upper world (Battlefield)
+  // 1. Upper world (Battlefield) - Solid, serious tone
   bgCtx.fillStyle = '#2c3e50';
   bgCtx.fillRect(0, 0, width, UPPER_WORLD_HEIGHT);
   
-  // Add dirt/battle marks to upper world
-  for(let i=0; i<800; i++) {
+  // Minimal texture for battlefield (just a few subtle cracks/marks)
+  bgCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+  for(let i=0; i<40; i++) {
     let rx = Math.random() * width;
     let ry = Math.random() * UPPER_WORLD_HEIGHT;
-    bgCtx.fillStyle = Math.random() > 0.5 ? '#1a252f' : '#34495e';
-    bgCtx.fillRect(rx, ry, 4 + Math.random()*4, 4 + Math.random()*4);
+    bgCtx.fillRect(rx, ry, 20, 2); // Horizontal scratches
   }
 
-  // Lower world (Base grass)
-  bgCtx.fillStyle = '#1e8449'; // Base grassy green
+  // 2. Lower world (Base grass) - Flat, modern green
+  bgCtx.fillStyle = '#27ae60'; 
   bgCtx.fillRect(0, UPPER_WORLD_HEIGHT, width, height - UPPER_WORLD_HEIGHT);
 
-  // Add grass texture
-  for(let i=0; i<2000; i++) {
+  // Minimalist grass (just a few dots)
+  bgCtx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+  for(let i=0; i<150; i++) {
     let rx = Math.random() * width;
     let ry = UPPER_WORLD_HEIGHT + Math.random() * (height - UPPER_WORLD_HEIGHT);
-    bgCtx.fillStyle = Math.random() > 0.5 ? '#27ae60' : '#196f3d';
-    bgCtx.fillRect(rx, ry, 6, 6);
+    bgCtx.fillRect(rx, ry, 2, 2);
   }
 
-  const drawBiome = (x, y, r, innerColor, outerColor) => {
+  // Helper for subtle biomes
+  const drawSubtleAura = (x, y, r, color) => {
     let grad = bgCtx.createRadialGradient(x, y, 0, x, y, r);
-    grad.addColorStop(0, innerColor);
-    grad.addColorStop(1, outerColor);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     bgCtx.fillStyle = grad;
     bgCtx.beginPath();
     bgCtx.arc(x, y, r, 0, Math.PI * 2);
     bgCtx.fill();
   };
 
-  // Rocky area for Mine
-  drawBiome(mine.x, mine.y, 300, 'rgba(127, 140, 141, 0.95)', 'rgba(127, 140, 141, 0)');
-  drawBiome(mine.x, mine.y, 200, 'rgba(96, 105, 107, 0.9)', 'rgba(96, 105, 107, 0)');
-  
-  // Dense forest grass for Forest
-  drawBiome(forest.x, forest.y, 300, 'rgba(21, 67, 32, 0.8)', 'rgba(21, 67, 32, 0)');
-  
-  // Dirt path/area for Smithy & Armory & Workshop
-  drawBiome(smithy.x, smithy.y, 250, 'rgba(110, 44, 0, 0.7)', 'rgba(110, 44, 0, 0)');
-  drawBiome(armory.x, armory.y, 250, 'rgba(110, 44, 0, 0.7)', 'rgba(110, 44, 0, 0)');
-  drawBiome(workshop.x, workshop.y, 250, 'rgba(110, 44, 0, 0.7)', 'rgba(110, 44, 0, 0)');
+  // Very subtle lighting/shadow spots for points of interest
+  drawSubtleAura(mine.x, mine.y, 250, 'rgba(0, 0, 0, 0.1)'); // Shadow for mine
+  drawSubtleAura(forest.x, forest.y, 250, 'rgba(255, 255, 255, 0.05)'); // Highlight for forest
+  drawSubtleAura(smithy.x, smithy.y, 200, 'rgba(0, 0, 0, 0.08)');
 }
 
 function resize() {
@@ -572,6 +568,8 @@ function render() {
   // --- DRAW BASES LAST (to cover units coming out) ---
   upperBase.draw(ctx, camera);
   enemyBase.draw(ctx, camera);
+ 
+   ctx.fillStyle = '#fff';
 
   ctx.fillStyle = '#fff';
   ctx.font = '16px monospace';
@@ -620,6 +618,8 @@ function render() {
     requestAnimationFrame(gameLoop);
   }
 }
+
+
 
 function updateShopButtons() {
     const buttons = document.querySelectorAll('.btn-buy');

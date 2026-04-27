@@ -138,7 +138,7 @@ export class EnemyArcher {
         }
       }
 
-      if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 500) {
+      if (blockedByTeammate && !closestPlayer && Date.now() - this.lastLaneSwitch > 1000) {
         const candidateLanes = [];
         if (this.lane > 0) candidateLanes.push(this.lane - 1);
         if (this.lane < LANE_Y.length - 1) candidateLanes.push(this.lane + 1);

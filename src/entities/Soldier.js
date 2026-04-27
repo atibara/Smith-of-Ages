@@ -25,6 +25,7 @@ export class Soldier {
     this.currentRow = 0; // 0: Walk, 1: Attack
     this.isMoving = false;
     this.isAttacking = false;
+    this.isNearTeammate = false; // Initial status
 
     this.sprite = new Image();
     this.processedSprite = null;
@@ -71,8 +72,8 @@ export class Soldier {
 
     // 1. Morale Boost (Group Marching)
     let currentSpeed = this.speed;
-    const isNearTeammate = allTeammates.some(other => other !== this && Math.abs(other.x - this.x) < 100);
-    if (isNearTeammate) {
+    this.isNearTeammate = allSoldiers.some(other => other !== this && Math.abs(other.x - this.x) < 100);
+    if (this.isNearTeammate) {
       currentSpeed *= 1.15;
     }
 
@@ -156,7 +157,7 @@ export class Soldier {
         }
       }
 
-      if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 500) {
+      if (blockedByTeammate && !closestEnemy && Date.now() - this.lastLaneSwitch > 1000) {
         const candidateLanes = [];
         if (this.lane > 0) candidateLanes.push(this.lane - 1);
         if (this.lane < LANE_Y.length - 1) candidateLanes.push(this.lane + 1);
@@ -231,6 +232,19 @@ export class Soldier {
   draw(ctx, camera) {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
+
+    // Draw Morale Aura if active
+    if (this.isNearTeammate) {
+      ctx.save();
+      const glow = ctx.createRadialGradient(drawX, drawY + 10, 0, drawX, drawY + 10, 35);
+      glow.addColorStop(0, 'rgba(52, 152, 219, 0.4)');
+      glow.addColorStop(1, 'rgba(52, 152, 219, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(drawX, drawY + 10, 35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
     const barWidth = 40;
     const barHeight = 6;
