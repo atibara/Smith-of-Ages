@@ -52,7 +52,11 @@ export class Player {
 
   setTarget(x, y, obstacles = [], worldBounds = null) {
     if (worldBounds) {
-      this.path = Pathfinder.findPath(this.x, this.y, x, y, obstacles, worldBounds, this.width / 2);
+      // Use dimensions that match the collision box in update()
+      // width/2 = 30, height/2 = 50
+      const paddingX = this.width / 2;
+      const paddingY = this.height / 2;
+      this.path = Pathfinder.findPath(this.x, this.y, x, y, obstacles, worldBounds, paddingX, paddingY);
       if (this.path.length > 0) {
          this.isMoving = true;
          this.targetX = this.path[0].x;

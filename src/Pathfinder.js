@@ -2,7 +2,7 @@ export class Pathfinder {
   static CELL_SIZE = 20;
 
   // Find shortest path using A*
-  static findPath(startX, startY, targetX, targetY, obstacles, bounds, playerRadius) {
+  static findPath(startX, startY, targetX, targetY, obstacles, bounds, paddingX, paddingY) {
     const cs = this.CELL_SIZE;
     
     // Nearest grid coords
@@ -11,9 +11,6 @@ export class Pathfinder {
 
     // Function to check if a specific world coordinate point is walkable
     const isWalkable = (wx, wy) => {
-      const paddingX = 25; // using width/2 approx
-      const paddingY = 40; // using height/2 approx
-
       // 1. Check bounds
       if (wx < bounds.minX + paddingX || 
           wx > bounds.maxX - paddingX || 
@@ -44,12 +41,15 @@ export class Pathfinder {
 
     // A* Data structures
     const openSet = [];
+    const openSetLookup = new Map(); // Fast lookup if node is in openSet
     const closedSet = new Set();
     const cameFrom = new Map();
     
     // Start node details
     const startKey = `${startNode.x},${startNode.y}`;
-    openSet.push({ x: startNode.x, y: startNode.y, f: 0, g: 0, key: startKey });
+    const startNodeObj = { x: startNode.x, y: startNode.y, f: 0, g: 0, key: startKey };
+    openSet.push(startNodeObj);
+    openSetLookup.set(startKey, startNodeObj);
     
     const gScore = new Map();
     gScore.set(startKey, 0);
@@ -76,8 +76,14 @@ export class Pathfinder {
       iterations++;
       
       // Get node with lowest f score
-      openSet.sort((a, b) => a.f - b.f);
-      const current = openSet.shift();
+      let minIdx = 0;
+      for (let i = 1; i < openSet.length; i++) {
+        if (openSet[i].f < openSet[minIdx].f) {
+           minIdx = i;
+        }
+      }
+      const current = openSet.splice(minIdx, 1)[0];
+      openSetLookup.delete(current.key);
       
       if (current.key === endKey) {
         return this.reconstructPath(cameFrom, current.key);
@@ -86,8 +92,8 @@ export class Pathfinder {
       closedSet.add(current.key);
       
       for (const dir of dirs) {
-        const neighborX = current.x + dir.dx;
-        const neighborY = current.y + dir.dy;
+        const neighborX = Math.round(current.x + dir.dx);
+        const neighborY = Math.round(current.y + dir.dy);
         const neighborKey = `${neighborX},${neighborY}`;
         
         if (closedSet.has(neighborKey)) continue;
@@ -100,29 +106,35 @@ export class Pathfinder {
 
         // To prevent corner cutting for diagonals, check if vertical/horizontal neighbors are walkable
         if (dir.dx !== 0 && dir.dy !== 0) {
-           if (!isWalkable(current.x + dir.dx, current.y) || !isWalkable(current.x, current.y + dir.dy)) {
+           if (!isWalkable(Math.round(current.x + dir.dx), current.y) || !isWalkable(current.x, Math.round(current.y + dir.dy))) {
                continue; // clip corner
            }
         }
         
         const tentativeG = gScore.get(current.key) + dir.cost;
-        let pNode = openSet.find(n => n.key === neighborKey);
+        let pNode = openSetLookup.get(neighborKey);
         
         if (!pNode) {
-           pNode = { x: neighborX, y: neighborY, key: neighborKey, g: Infinity, f: Infinity };
+           const h = Math.sqrt(Math.pow(endNode.x - neighborX, 2) + Math.pow(endNode.y - neighborY, 2));
+           pNode = { 
+             x: neighborX, 
+             y: neighborY, 
+             key: neighborKey, 
+             g: tentativeG, 
+             f: tentativeG + h 
+           };
            openSet.push(pNode);
-        } else if (tentativeG >= gScore.get(neighborKey)) {
-           continue;
+           openSetLookup.set(neighborKey, pNode);
+           cameFrom.set(neighborKey, { x: current.x, y: current.y, key: current.key });
+           gScore.set(neighborKey, tentativeG);
+        } else if (tentativeG < (gScore.get(neighborKey) || Infinity)) {
+           // This path is the best until now
+           cameFrom.set(neighborKey, { x: current.x, y: current.y, key: current.key });
+           gScore.set(neighborKey, tentativeG);
+           pNode.g = tentativeG;
+           const h = Math.sqrt(Math.pow(endNode.x - neighborX, 2) + Math.pow(endNode.y - neighborY, 2));
+           pNode.f = tentativeG + h;
         }
-        
-        // This path is the best until now
-        cameFrom.set(neighborKey, { x: current.x, y: current.y, key: current.key });
-        gScore.set(neighborKey, tentativeG);
-        
-        // Heuristic (Euclidean distance)
-        const h = Math.sqrt(Math.pow(endNode.x - neighborX, 2) + Math.pow(endNode.y - neighborY, 2));
-        pNode.g = tentativeG;
-        pNode.f = tentativeG + h;
       }
     }
     
