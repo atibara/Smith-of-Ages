@@ -2,8 +2,8 @@ import { LANE_Y } from '../Constants.js';
 
 export class Soldier {
   constructor(x, yOffset, lane = 1) {
-    this.width = 25;
-    this.height = 40;
+    this.width = 40;
+    this.height = 70;
     this.x = x;
     this.y = yOffset; // Vertical center of the upper world path
     this.lane = lane; // 0 (top), 1 (middle), 2 (bottom)
@@ -31,7 +31,7 @@ export class Soldier {
     this.sprite.onload = () => {
         this.processedSprite = this.removeWhiteBackground(this.sprite);
     };
-    this.sprite.src = 'assets/soldier_blue.png';
+    this.sprite.src = 'assets/Tiny RPG Character Asset Pack v1.03 -Free Soldier&Orc/Characters(100x100)/Soldier/Soldier with shadows/Soldier.png';
   }
 
   removeWhiteBackground(img) {
@@ -43,7 +43,6 @@ export class Soldier {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     for (let i = 0; i < data.length; i += 4) {
-      // More aggressive white removal: anything very bright
       const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
       if (brightness > 240) {
         data[i+3] = 0;
@@ -61,7 +60,7 @@ export class Soldier {
     if (this.health <= 0) return;
 
     let canMove = true;
-    const padding = 15; // Increased padding for better visual spacing
+    const padding = 15; 
     const attackRange = 40;
     const detectionRange = 250;
     const allTeammates = [...allSoldiers, ...allArchers, ...mangonels.filter(m => m.state === 'COMBAT')];
@@ -88,11 +87,9 @@ export class Soldier {
     }
 
     // 3. Bodyguard Logic (Interception)
-    // If no enemy in current lane, check if an archer nearby needs protection
     if (!closestEnemy || closestEnemy.lane !== this.lane) {
       for (const archer of allArchers) {
         if (Math.abs(archer.lane - this.lane) === 1 && Math.abs(archer.x - this.x) < 100) {
-          // Check if this archer has an enemy close to them
           const archerThreat = allEnemies.find(e => e.lane === archer.lane && Math.abs(e.x - archer.x) < 150);
           if (archerThreat && Date.now() - this.lastLaneSwitch > 800) {
             this.lane = archer.lane;
@@ -111,19 +108,24 @@ export class Soldier {
           if (now - this.lastAttack > this.attackDelay) {
             closestEnemy.takeDamage(this.attackDamage);
             this.lastAttack = now;
+            this.isAttacking = true;
           }
           canMove = false;
+        } else {
+            this.isAttacking = false;
         }
       } else {
-        // Target is in another lane, switch to it!
+        this.isAttacking = false;
         if (Date.now() - this.lastLaneSwitch > 800) {
           this.lane = closestEnemy.lane;
           this.lastLaneSwitch = Date.now();
         }
       }
+    } else {
+        this.isAttacking = false;
     }
 
-    // 5. Base detection (Fix: Allow attacking even if partially blocked)
+    // 5. Base detection
     const distToBase = enemyBase ? Math.abs(enemyBase.x - this.x) : Infinity;
     if (enemyBase && distToBase < enemyBase.width / 2 + attackRange) {
       const now = Date.now();
@@ -131,21 +133,19 @@ export class Soldier {
         enemyBase.health = Math.max(0, enemyBase.health - this.attackDamage);
         this.lastAttack = now;
         this.isAttacking = true;
-        this.lastAttackTime = now;
       }
       canMove = false;
-    } else {
-        this.isAttacking = false;
-    }
+    } 
 
-    // 6. Teammate collision and dynamic lane avoiding
     if (canMove) {
       let blockedByTeammate = false;
       for (const other of allTeammates) {
         if (other === this || other.lane !== this.lane) continue;
         
-        // Only block if the other is ahead AND we are actually overlapping roughly
-        if (other.x > this.x && other.x - this.x < this.width + padding - 5) {
+        const isArcher = other.constructor.name === 'Archer' || other.constructor.name === 'EnemyArcher';
+        const effectivePadding = isArcher ? -this.width : padding; 
+
+        if (other.x > this.x && other.x - this.x < this.width + effectivePadding - 5) {
           canMove = false;
           blockedByTeammate = true;
           break;
@@ -197,7 +197,6 @@ export class Soldier {
       }
     }
 
-    // Smooth lane transition
     const targetY = LANE_Y[this.lane];
     if (this.y !== targetY) {
       const diff = targetY - this.y;
@@ -211,16 +210,17 @@ export class Soldier {
     // Animation update
     const now = Date.now();
     if (this.isAttacking) {
-        this.currentRow = 1;
-        const attackProgress = (now - this.lastAttack) / this.attackDelay;
-        this.currentFrame = Math.floor(attackProgress * 2) % 2; // 2 frames for attack
+        this.currentRow = 2; // Attack01
+        this.animTimer += 0.15;
+        this.currentFrame = Math.floor(this.animTimer) % 6; 
     } else if (this.isMoving) {
-        this.currentRow = 0;
-        this.animTimer += 0.1;
-        this.currentFrame = Math.floor(this.animTimer) % 2; // 2 frames for walking
+        this.currentRow = 1; // Walk
+        this.animTimer += 0.15;
+        this.currentFrame = Math.floor(this.animTimer) % 6; 
     } else {
-        this.currentRow = 0;
-        this.currentFrame = 0; 
+        this.currentRow = 0; // Idle
+        this.animTimer += 0.1;
+        this.currentFrame = Math.floor(this.animTimer) % 6; 
     }
   }
 
@@ -228,7 +228,6 @@ export class Soldier {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // Health bar
     const barWidth = 30;
     const barHeight = 4;
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -237,10 +236,10 @@ export class Soldier {
     ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 15, barWidth * (this.health / this.maxHealth), barHeight);
 
     if (this.processedSprite) {
-        // High-res sprite sheet (1024x1024, 2x2 grid)
-        const frameWidth = 512;
-        const frameHeight = 512;
-        const renderSize = 85; 
+        // Updated for 100x100 grid from Tiny RPG pack
+        const frameWidth = 100;
+        const frameHeight = 100;
+        const renderSize = 150; 
 
         ctx.drawImage(
             this.processedSprite,

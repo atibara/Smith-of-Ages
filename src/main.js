@@ -18,7 +18,10 @@ import { UPPER_WORLD_HEIGHT, LANE_Y, GRID_SIZE } from './Constants.js';
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-let width, height;
+// --- FIXED VIRTUAL RESOLUTION ---
+let width = 1200;
+let height = 800;
+
 const player = new Player(400, 300);
 const smithy = new Smithy(400, 300);
 const mine = new IronMine(0, 0);
@@ -145,28 +148,27 @@ function generateBackgroundTexture() {
 }
 
 function resize() {
-  width = window.innerWidth;
-  height = window.innerHeight;
   canvas.width = width;
   canvas.height = height;
+  ctx.imageSmoothingEnabled = false;
   
-  // Position buildings
+  // Position buildings based on 1200x800 virtual space
   smithy.x = width / 2;
   smithy.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2;
   
   mine.x = 200;
-  mine.y = height - 160;
+  mine.y = height - 120;
 
   forest.x = 200;
   forest.y = UPPER_WORLD_HEIGHT + 140;
   
-  armory.x = width - 220;
-  armory.y = UPPER_WORLD_HEIGHT + 120;
+  armory.x = width - 200;
+  armory.y = UPPER_WORLD_HEIGHT + 140;
 
-  workshop.x = width - 250;
-  workshop.y = height - 160;
+  workshop.x = width - 200;
+  workshop.y = height - 120;
 
-  market.x = 200;
+  market.x = width / 2 - 250;
   market.y = (forest.y + mine.y) / 2;
 
   upperBase.x = 80;
@@ -303,8 +305,10 @@ window.addEventListener('keydown', (e) => {
 canvas.addEventListener('mousedown', (e) => {
   if (gameState !== 'PLAYING') return;
   const rect = canvas.getBoundingClientRect();
-  const screenX = e.clientX - rect.left;
-  const screenY = e.clientY - rect.top;
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const screenX = (e.clientX - rect.left) * scaleX;
+  const screenY = (e.clientY - rect.top) * scaleY;
   const worldX = screenX + camera.x;
   const worldY = screenY + camera.y;
   const obstacles = [smithy, mine, forest, armory, workshop, market];

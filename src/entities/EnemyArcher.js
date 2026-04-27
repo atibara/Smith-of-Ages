@@ -3,15 +3,18 @@ import { LANE_Y } from '../Constants.js';
 
 export class EnemyArcher {
   constructor(x, yOffset, lane = 1) {
-    this.width = 25;
-    this.height = 40;
+    this.width = 40;
+    this.height = 70;
     this.x = x;
     this.y = yOffset;
     this.lane = lane; // 0, 1, 2
-    this.color = '#d35400'; // Dark orange theme for enemy archers
+    this.sprite = new Image();
+    this.processedSprite = null;
+    this.sprite.onload = () => {
+        this.processedSprite = this.removeWhiteBackground(this.sprite);
+    };
+    this.sprite.src = 'assets/Tiny RPG Character Asset Pack v1.03 -Free Soldier&Orc/Characters(100x100)/Orc/Orc with shadows/Orc.png';
     this.speed = 0.4;
-    
-    // Health and Combat
     this.health = 50;
     this.maxHealth = 50;
     this.attackDamage = 8;
@@ -21,6 +24,27 @@ export class EnemyArcher {
     this.lastLaneSwitch = 0;
     this.id = Math.random();
     this.goldReward = 15;
+    this.animTimer = 0;
+    this.currentFrame = 0;
+    this.currentRow = 0;
+  }
+
+  removeWhiteBackground(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+      if (brightness > 240) {
+        data[i+3] = 0;
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
   }
 
   takeDamage(amount) {
@@ -33,19 +57,18 @@ export class EnemyArcher {
     let canMove = true;
     const padding = 20;
 
-    // 1. Morale Boost (Group Marching)
     let currentSpeed = this.speed;
     const isNearTeammate = allEnemies.some(other => other !== this && Math.abs(other.x - this.x) < 100);
     if (isNearTeammate) {
       currentSpeed *= 1.15;
     }
 
-    // 2. Find the absolute closest player unit horizontally (any lane)
     let closestPlayer = null;
     let minXDist = Infinity;
 
     for (const playerUnit of allPlayers) {
-      const dist = this.x - playerUnit.x; // Moving left, player is on the left
+      if (playerUnit.lane !== this.lane) continue;
+      const dist = this.x - playerUnit.x; 
       if (dist > 0 && dist < this.range) {
         if (dist < minXDist) {
           minXDist = dist;
@@ -54,7 +77,6 @@ export class EnemyArcher {
       }
     }
 
-    // 3. Engagement & Kiting Logic
     let targetX = -1;
     let targetLane = this.lane;
     let targetY = this.y;
@@ -65,7 +87,6 @@ export class EnemyArcher {
       targetY = LANE_Y[targetLane];
       canMove = false;
 
-      // KITE: If player is too close, try to back up
       if (minXDist < 120 && this.x < window.innerWidth - 100) {
         let backPathClear = true;
         for (const other of allEnemies) {
@@ -75,7 +96,7 @@ export class EnemyArcher {
           }
         }
         if (backPathClear) {
-          this.x += currentSpeed * 0.5; // Backpedal to the right
+          this.x += currentSpeed * 0.5; 
         }
       }
     } else if (playerBase && this.x - playerBase.x < this.range) {
@@ -93,18 +114,21 @@ export class EnemyArcher {
         this.lastAttack = now;
       }
     } else {
-      // 4. Normal movement collision with other enemies in the SAME LANE
       let blockedByTeammate = false;
       for (const other of allEnemies) {
         if (other === this || other.lane !== this.lane) continue;
+
         if (other.x < this.x && this.x - other.x < this.width + padding) {
           canMove = false;
           blockedByTeammate = true;
           break;
         }
+
+        if (other.x > this.x && other.x - this.x < 40 && other.constructor.name === 'Enemy') {
+           blockedByTeammate = true; 
+        }
       }
 
-      // 5. Dynamic Lane Switching if blocked by a teammate
       if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 500) {
         const candidateLanes = [];
         if (this.lane > 0) candidateLanes.push(this.lane - 1);
@@ -145,7 +169,19 @@ export class EnemyArcher {
       }
     }
 
-    // Smooth lane transition
+    const nowTime = Date.now();
+    if (nowTime - this.lastAttack < 500) {
+        this.currentRow = 2; // Attack
+        this.animTimer += 0.15;
+    } else if (canMove && targetX === -1) {
+        this.currentRow = 1; // Walk
+        this.animTimer += 0.15;
+    } else {
+        this.currentRow = 0; // Idle
+        this.animTimer += 0.1;
+    }
+    this.currentFrame = Math.floor(this.animTimer) % 6;
+
     const targetLaneY = LANE_Y[this.lane];
     if (this.y !== targetLaneY) {
       const diff = targetLaneY - this.y;
@@ -161,7 +197,6 @@ export class EnemyArcher {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // Draw health bar
     const barWidth = 30;
     const barHeight = 4;
     ctx.fillStyle = '#c0392b';
@@ -169,18 +204,32 @@ export class EnemyArcher {
     ctx.fillStyle = '#2ecc71';
     ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth * (this.health / this.maxHealth), barHeight);
 
-    // Draw enemy archer body
-    ctx.beginPath();
-    ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, 5);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-    
-    // Draw bow visually (flipped for enemy)
-    ctx.strokeStyle = '#5d2906';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(drawX - 10, drawY, 15, Math.PI/2, -Math.PI/2);
-    ctx.stroke();
-    ctx.closePath();
+    if (this.processedSprite) {
+        const frameWidth = 100;
+        const frameHeight = 100;
+        const renderSize = 150;
+
+        ctx.save();
+        ctx.translate(drawX, drawY);
+        ctx.scale(-1, 1); // Face left
+
+        ctx.drawImage(
+            this.processedSprite,
+            this.currentFrame * frameWidth,
+            this.currentRow * frameHeight,
+            frameWidth,
+            frameHeight,
+            -renderSize / 2,
+            -renderSize / 2,
+            renderSize,
+            renderSize
+        );
+        ctx.restore();
+    } else {
+        ctx.beginPath();
+        ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, 5);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+    }
   }
 }

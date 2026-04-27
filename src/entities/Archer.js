@@ -3,23 +3,55 @@ import { LANE_Y } from '../Constants.js';
 
 export class Archer {
   constructor(x, yOffset, lane = 1) {
-    this.width = 25;
-    this.height = 40;
+    this.width = 40;
+    this.height = 70;
     this.x = x;
     this.y = yOffset;
     this.lane = lane; // 0, 1, 2
-    this.color = '#27ae60'; // Green theme for archers
+    this.sprite = new Image();
+    this.processedSprite = null;
+    this.sprite.onload = () => {
+      this.processedSprite = this.removeWhiteBackground(this.sprite);
+    };
+    this.sprite.src = 'assets/Tiny RPG Character Asset Pack v1.03 -Free Soldier&Orc/Characters(100x100)/Soldier/Soldier with shadows/Soldier.png';
     this.speed = 0.45;
-    
-    // Health and Combat
-    this.health = 60; // Lower than soldiers
+    this.health = 60;
     this.maxHealth = 60;
     this.attackDamage = 15;
-    this.attackDelay = 1500; // Slower than melee
+    this.attackDelay = 1500;
     this.lastAttack = 0;
     this.range = 350;
     this.lastLaneSwitch = 0;
     this.id = Math.random();
+    this.animTimer = 0;
+    this.currentFrame = 0;
+    this.currentRow = 0;
+  }
+
+  removeWhiteBackground(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const brightness = (r + g + b) / 3;
+      if (brightness > 240) {
+        data[i + 3] = 0;
+      } else if (brightness < 200) {
+        // TINT: Make it greenish
+        data[i] = r * 0.5;
+        data[i + 1] = g * 1.2;
+        data[i + 2] = b * 0.5;
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
   }
 
   takeDamage(amount) {
@@ -30,21 +62,22 @@ export class Archer {
     if (this.health <= 0) return;
 
     let canMove = true;
-    const padding = 25; // Archers need more space
+    const padding = 25;
     const allTeammates = [...allArchers, ...allSoldiers, ...mangonels.filter(m => m.state === 'COMBAT')];
 
-    // 1. Morale Boost (Group Marching)
+    // 1. Morale Boost
     let currentSpeed = this.speed;
     const isNearTeammate = allTeammates.some(other => other !== this && Math.abs(other.x - this.x) < 100);
     if (isNearTeammate) {
       currentSpeed *= 1.15;
     }
 
-    // 2. Find the absolute closest enemy horizontally (any lane)
+    // 2. Engagement
     let closestEnemy = null;
     let minXDist = Infinity;
 
     for (const enemy of allEnemies) {
+      if (enemy.lane !== this.lane) continue;
       const dist = enemy.x - this.x;
       if (dist > 0 && dist < this.range) {
         if (dist < minXDist) {
@@ -54,7 +87,6 @@ export class Archer {
       }
     }
 
-    // 3. Engagement & Kiting Logic
     let targetX = -1;
     let targetLane = this.lane;
     let targetY = this.y;
@@ -63,15 +95,12 @@ export class Archer {
       targetX = closestEnemy.x;
       targetLane = closestEnemy.lane;
       targetY = LANE_Y[targetLane];
-      
-      // ONLY stop if the enemy is in our lane OR if we are close to our maximum range
-      // This prevents archers from blocking lanes needlessly
+
       if (targetLane === this.lane || minXDist < 150) {
         canMove = false;
       }
 
-      // KITE: If enemy is too close, try to back up
-      if (minXDist < 120 && this.x > 100) { // Safety buffer from base at 80
+      if (minXDist < 120 && this.x > 100) {
         let backPathClear = true;
         for (const other of allTeammates) {
           if (other.lane === this.lane && other.x < this.x && this.x - other.x < this.width + 10) {
@@ -80,7 +109,7 @@ export class Archer {
           }
         }
         if (backPathClear) {
-          this.x -= currentSpeed * 0.5; // Backpedal
+          this.x -= currentSpeed * 0.5;
         }
       }
     } else if (enemyBase && enemyBase.x - this.x < this.range) {
@@ -97,21 +126,27 @@ export class Archer {
         arrows.push(newArrow);
         this.lastAttack = now;
       }
-    } 
-    
-    // Normal movement collision logic - always check this if not explicitly shooting/stopped
+    }
+
     if (canMove) {
       let blockedByTeammate = false;
+      let yielding = false;
+
       for (const other of allTeammates) {
         if (other === this || other.lane !== this.lane) continue;
+
         if (other.x > this.x && other.x - this.x < this.width + padding) {
           canMove = false;
           blockedByTeammate = true;
           break;
         }
+
+        if (other.x < this.x && this.x - other.x < 40 && other.constructor.name === 'Soldier') {
+          yielding = true;
+          blockedByTeammate = true;
+        }
       }
 
-      // 5. Dynamic Lane Switching if blocked by a teammate
       if (blockedByTeammate && Date.now() - this.lastLaneSwitch > 800) {
         const candidateLanes = [];
         if (this.lane > 0) candidateLanes.push(this.lane - 1);
@@ -145,14 +180,26 @@ export class Archer {
       if (other === this || other.lane !== this.lane) continue;
       let dist = this.x - other.x;
       if (dist === 0 && this.id && other.id) {
-         dist = this.id > other.id ? 0.1 : -0.1;
+        dist = this.id > other.id ? 0.1 : -0.1;
       }
       if (Math.abs(dist) < this.width + 5) {
-         this.x += dist > 0 ? 0.5 : -0.5;
+        this.x += dist > 0 ? 0.5 : -0.5;
       }
     }
 
-    // Smooth lane transition
+    const nowTime = Date.now();
+    if (nowTime - this.lastAttack < 500) {
+      this.currentRow = 2; // Attack
+      this.animTimer += 0.15;
+    } else if (canMove) {
+      this.currentRow = 1; // Walk
+      this.animTimer += 0.15;
+    } else {
+      this.currentRow = 0; // Idle
+      this.animTimer += 0.1;
+    }
+    this.currentFrame = Math.floor(this.animTimer) % 6;
+
     const targetLaneY = LANE_Y[this.lane];
     if (this.y !== targetLaneY) {
       const diff = targetLaneY - this.y;
@@ -168,7 +215,6 @@ export class Archer {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // Draw health bar
     const barWidth = 30;
     const barHeight = 4;
     ctx.fillStyle = '#c0392b';
@@ -176,18 +222,29 @@ export class Archer {
     ctx.fillStyle = '#2ecc71';
     ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth * (this.health / this.maxHealth), barHeight);
 
-    // Draw archer body
-    ctx.beginPath();
-    ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, 5);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-    
-    // Draw bow visually
-    ctx.strokeStyle = '#8b4513';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(drawX + 10, drawY, 15, -Math.PI/2, Math.PI/2);
-    ctx.stroke();
-    ctx.closePath();
+    if (this.processedSprite) {
+      const frameWidth = 100;
+      const frameHeight = 100;
+      const renderSize = 150;
+
+      ctx.drawImage(
+        this.processedSprite,
+        this.currentFrame * frameWidth,
+        this.currentRow * frameHeight,
+        frameWidth,
+        frameHeight,
+        drawX - renderSize / 2,
+        drawY - renderSize / 2,
+        renderSize,
+        renderSize
+      );
+    } else {
+      ctx.beginPath();
+      ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, 5);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+    }
+
+    // Bow is now part of the sprite visually if we choose the right row, but we'll stick to sprite-only.
   }
 }

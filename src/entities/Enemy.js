@@ -2,8 +2,8 @@ import { LANE_Y } from '../Constants.js';
 
 export class Enemy {
   constructor(x, yOffset, lane = 1) {
-    this.width = 25;
-    this.height = 40;
+    this.width = 40;
+    this.height = 70;
     this.x = x;
     this.y = yOffset;
     this.lane = lane; // 0, 1, 2
@@ -32,7 +32,7 @@ export class Enemy {
     this.sprite.onload = () => {
         this.processedSprite = this.removeWhiteBackground(this.sprite);
     };
-    this.sprite.src = 'assets/soldier_red.png';
+    this.sprite.src = 'assets/Tiny RPG Character Asset Pack v1.03 -Free Soldier&Orc/Characters(100x100)/Orc/Orc with shadows/Orc.png';
   }
 
   removeWhiteBackground(img) {
@@ -65,14 +65,12 @@ export class Enemy {
     const attackRange = 40;
     const detectionRange = 250;
 
-    // 1. Morale Boost (Group Marching)
     let currentSpeed = this.speed;
     const isNearTeammate = allEnemies.some(other => other !== this && Math.abs(other.x - this.x) < 100);
     if (isNearTeammate) {
       currentSpeed *= 1.15;
     }
 
-    // 2. Find the absolute closest player unit horizontally
     let closestPlayer = null;
     let minXDist = Infinity;
 
@@ -86,10 +84,8 @@ export class Enemy {
       }
     }
 
-    // 3. Bodyguard Logic (Interception for EnemyArchers)
     if (!closestPlayer || closestPlayer.lane !== this.lane) {
       for (const other of allEnemies) {
-        // Look for allied archers nearby in adjacent lanes
         if (other.constructor.name === 'EnemyArcher' && Math.abs(other.lane - this.lane) === 1 && Math.abs(other.x - this.x) < 100) {
           const threat = allPlayers.find(p => p.lane === other.lane && Math.abs(p.x - other.x) < 150);
           if (threat && Date.now() - this.lastLaneSwitch > 500) {
@@ -101,7 +97,6 @@ export class Enemy {
       }
     }
 
-    // 4. Decision Logic (Combat & Targeted Lane Switch)
     if (closestPlayer) {
       if (closestPlayer.lane === this.lane) {
         if (minXDist < attackRange) {
@@ -117,7 +112,6 @@ export class Enemy {
         }
       } else {
         this.isAttacking = false;
-        // Target is in another lane, switch to it!
         if (Date.now() - this.lastLaneSwitch > 500) {
           this.lane = closestPlayer.lane;
           this.lastLaneSwitch = Date.now();
@@ -127,7 +121,6 @@ export class Enemy {
         this.isAttacking = false;
     }
 
-    // 5. Base detection (always hits base if close enough)
     const distToBase = upperBase ? Math.abs(upperBase.x - this.x) : Infinity;
     if (upperBase && distToBase < upperBase.width / 2 + attackRange) {
       const now = Date.now();
@@ -139,12 +132,15 @@ export class Enemy {
       canMove = false;
     }
 
-    // 6. Teammate collision and dynamic lane avoiding
     if (canMove) {
       let blockedByTeammate = false;
       for (const other of allEnemies) {
         if (other === this || other.lane !== this.lane) continue;
-        if (other.x < this.x && this.x - other.x < this.width + padding) {
+        
+        const isArcher = other.constructor.name === 'EnemyArcher';
+        const effectivePadding = isArcher ? -this.width : padding;
+
+        if (other.x < this.x && this.x - other.x < this.width + effectivePadding) {
           canMove = false;
           blockedByTeammate = true;
           break;
@@ -196,7 +192,6 @@ export class Enemy {
       }
     }
 
-    // Smooth lane transition
     const targetY = LANE_Y[this.lane];
     if (this.y !== targetY) {
       const diff = targetY - this.y;
@@ -210,16 +205,17 @@ export class Enemy {
     // Animation update
     const now = Date.now();
     if (this.isAttacking) {
-        this.currentRow = 1;
-        const attackProgress = (now - this.lastAttack) / this.attackDelay;
-        this.currentFrame = Math.floor(attackProgress * 2) % 2; // 2 frames for attack
+        this.currentRow = 2; // Attack
+        this.animTimer += 0.15;
+        this.currentFrame = Math.floor(this.animTimer) % 6; 
     } else if (this.isMoving) {
-        this.currentRow = 0;
-        this.animTimer += 0.1;
-        this.currentFrame = Math.floor(this.animTimer) % 2; // 2 frames for walking
+        this.currentRow = 1; // Walk
+        this.animTimer += 0.15;
+        this.currentFrame = Math.floor(this.animTimer) % 6; 
     } else {
-        this.currentRow = 0;
-        this.currentFrame = 0;
+        this.currentRow = 0; // Idle
+        this.animTimer += 0.1;
+        this.currentFrame = Math.floor(this.animTimer) % 6; 
     }
   }
 
@@ -227,7 +223,6 @@ export class Enemy {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // Health bar
     const barWidth = 30;
     const barHeight = 4;
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -236,10 +231,9 @@ export class Enemy {
     ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 15, barWidth * (this.health / this.maxHealth), barHeight);
 
     if (this.processedSprite) {
-        // High-res sprite sheet (1024x1024, 2x2 grid)
-        const frameWidth = 512;
-        const frameHeight = 512;
-        const renderSize = 85;
+        const frameWidth = 100;
+        const frameHeight = 100;
+        const renderSize = 150;
 
         ctx.save();
         ctx.translate(drawX, drawY);
@@ -258,7 +252,6 @@ export class Enemy {
         );
         ctx.restore();
     } else {
-        // Fallback
         ctx.fillStyle = this.color;
         ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
     }
