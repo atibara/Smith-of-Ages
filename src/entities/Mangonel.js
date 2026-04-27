@@ -27,11 +27,14 @@ export class Mangonel {
     this.id = Math.random();
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, effectsArray) {
     this.health -= amount;
+    if (effectsArray) {
+      effectsArray.push({ x: this.x, y: this.y - 20, text: `-${Math.floor(amount)}`, color: '#f1c40f' });
+    }
   }
 
-  update(allMangonels, allEnemies, enemyBase, stones, player, allOthers = []) {
+  update(allMangonels, allEnemies, enemyBase, stones, player, allOthers = [], damageEffects = []) {
     if (this.health <= 0) return;
 
     if (this.state === 'FOLLOWING') {

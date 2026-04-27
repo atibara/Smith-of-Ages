@@ -4,7 +4,7 @@ import { LANE_Y } from '../Constants.js';
 export class Archer {
   constructor(x, yOffset, lane = 1) {
     this.width = 40;
-    this.height = 70;
+    this.height = 60;
     this.x = x;
     this.y = yOffset;
     this.lane = lane; // 0, 1, 2
@@ -20,7 +20,9 @@ export class Archer {
     this.attackDamage = 15;
     this.attackDelay = 1500;
     this.lastAttack = 0;
-    this.range = 300; // Reduced range to match new limit
+    this.attackRange = 180; // Distance to stop and start firing
+    this.arrowLimit = 200;  // Max distance arrow can travel
+    this.range = this.attackRange; // Legacy support
     this.lastLaneSwitch = 0;
     this.id = Math.random();
     this.animTimer = 0;
@@ -54,11 +56,14 @@ export class Archer {
     return canvas;
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, effectsArray) {
     this.health -= amount;
+    if (effectsArray) {
+      effectsArray.push({ x: this.x, y: this.y - 40, text: `-${Math.floor(amount)}`, color: '#f1c40f' });
+    }
   }
 
-  update(allArchers, allEnemies, enemyBase, arrows, allSoldiers = [], mangonels = []) {
+  update(allArchers, allEnemies, enemyBase, arrows, allSoldiers = [], mangonels = [], damageEffects = []) {
     if (this.health <= 0) return;
 
     let canMove = true;
@@ -122,16 +127,17 @@ export class Archer {
     if (targetX !== -1) {
       const now = Date.now();
       const timeSinceAttack = now - this.lastAttack;
-      
+
       // Trigger attack every attackDelay
       if (timeSinceAttack > this.attackDelay) {
         this.lastAttack = now;
         this.hasFiredInCycle = false;
       }
-      
-      // Spawn arrow at midpoint of animation (approx 250ms into a 500ms anim)
+
+      // Spawn arrow at midpoint of animation
       if (timeSinceAttack > 250 && !this.hasFiredInCycle) {
         const newArrow = new Arrow(this.x + 10, targetY, this.attackDamage, 'player', targetLane);
+        newArrow.maxRange = this.arrowLimit; // Set the limit from Archer
         arrows.push(newArrow);
         this.hasFiredInCycle = true;
       }
@@ -192,7 +198,7 @@ export class Archer {
         dist = this.id > other.id ? 0.1 : -0.1;
       }
       if (Math.abs(dist) < this.width + 5) {
-        this.x += dist > 0 ? 0.5 : -0.5;
+        this.x += dist > 0 ? 2.0 : -2.0;
       }
     }
 
@@ -224,12 +230,13 @@ export class Archer {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    const barWidth = 30;
-    const barHeight = 4;
+    const barWidth = 40;
+    const barHeight = 6;
+    const healthY = drawY - 35; // Lowered to be closer to head
     ctx.fillStyle = '#c0392b';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth, barHeight);
+    ctx.fillRect(drawX - barWidth / 2, healthY, barWidth, barHeight);
     ctx.fillStyle = '#2ecc71';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth * (this.health / this.maxHealth), barHeight);
+    ctx.fillRect(drawX - barWidth / 2, healthY, barWidth * (this.health / this.maxHealth), barHeight);
 
     if (this.processedSprite) {
       const frameWidth = 100;

@@ -2,8 +2,8 @@ export class Smithy {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 100;
-    this.height = 80;
+    this.width = 120;
+    this.height = 60;
     this.color = '#7f8c8d'; // Greyish color for a smithy
     this.interactionRadius = 100; // How close player needs to be
   }

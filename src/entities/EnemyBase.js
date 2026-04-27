@@ -8,6 +8,13 @@ export class EnemyBase {
     this.maxHealth = 1000;
     this.color = '#c0392b'; // Dark red for enemy base
   }
+  
+  takeDamage(amount, effectsArray) {
+    this.health = Math.max(0, this.health - amount);
+    if (effectsArray) {
+      effectsArray.push({ x: this.x, y: this.y - 40, text: `-${Math.floor(amount)}`, color: '#e74c3c' });
+    }
+  }
 
   draw(ctx, camera) {
     const drawX = this.x - camera.x;

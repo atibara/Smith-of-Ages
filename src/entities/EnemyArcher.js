@@ -4,14 +4,14 @@ import { LANE_Y } from '../Constants.js';
 export class EnemyArcher {
   constructor(x, yOffset, lane = 1) {
     this.width = 40;
-    this.height = 70;
+    this.height = 60;
     this.x = x;
     this.y = yOffset;
     this.lane = lane; // 0, 1, 2
     this.sprite = new Image();
     this.processedSprite = null;
     this.sprite.onload = () => {
-        this.processedSprite = this.removeWhiteBackground(this.sprite);
+      this.processedSprite = this.removeWhiteBackground(this.sprite);
     };
     this.sprite.src = 'assets/Tiny RPG Character Asset Pack v1.03 -Free Soldier&Orc/Characters(100x100)/Orc/Orc with shadows/Orc.png';
     this.speed = 0.4;
@@ -20,7 +20,9 @@ export class EnemyArcher {
     this.attackDamage = 8;
     this.attackDelay = 1800; // Slower attack rate
     this.lastAttack = 0;
-    this.range = 300;
+    this.attackRange = 100;
+    this.arrowLimit = 200;
+    this.range = this.attackRange;
     this.lastLaneSwitch = 0;
     this.id = Math.random();
     this.goldReward = 15;
@@ -39,20 +41,23 @@ export class EnemyArcher {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     for (let i = 0; i < data.length; i += 4) {
-      const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+      const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
       if (brightness > 240) {
-        data[i+3] = 0;
+        data[i + 3] = 0;
       }
     }
     ctx.putImageData(imageData, 0, 0);
     return canvas;
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, effectsArray) {
     this.health -= amount;
+    if (effectsArray) {
+      effectsArray.push({ x: this.x, y: this.y - 20, text: `-${Math.floor(amount)}`, color: '#e74c3c' });
+    }
   }
 
-  update(allEnemies, allPlayers, playerBase, arrows) {
+  update(allEnemies, allPlayers, playerBase, arrows, damageEffects = []) {
     if (this.health <= 0) return;
 
     let canMove = true;
@@ -69,7 +74,7 @@ export class EnemyArcher {
 
     for (const playerUnit of allPlayers) {
       if (playerUnit.lane !== this.lane) continue;
-      const dist = this.x - playerUnit.x; 
+      const dist = this.x - playerUnit.x;
       if (dist > 0 && dist < this.range) {
         if (dist < minXDist) {
           minXDist = dist;
@@ -97,7 +102,7 @@ export class EnemyArcher {
           }
         }
         if (backPathClear) {
-          this.x += currentSpeed * 0.5; 
+          this.x += currentSpeed * 0.5;
         }
       }
     } else if (playerBase && this.x - playerBase.x < this.range) {
@@ -116,6 +121,7 @@ export class EnemyArcher {
       }
       if (timeSinceAttack > 250 && !this.hasFiredInCycle) {
         const newArrow = new Arrow(this.x - 10, targetY, this.attackDamage, 'enemy', targetLane);
+        newArrow.maxRange = this.arrowLimit;
         arrows.push(newArrow);
         this.hasFiredInCycle = true;
       }
@@ -131,7 +137,7 @@ export class EnemyArcher {
         }
 
         if (other.x > this.x && other.x - this.x < 40 && other.constructor.name === 'Enemy') {
-           blockedByTeammate = true; 
+          blockedByTeammate = true;
         }
       }
 
@@ -168,23 +174,23 @@ export class EnemyArcher {
       if (other === this || other.lane !== this.lane) continue;
       let dist = this.x - other.x;
       if (dist === 0 && this.id && other.id) {
-         dist = this.id > other.id ? 0.1 : -0.1;
+        dist = this.id > other.id ? 0.1 : -0.1;
       }
       if (Math.abs(dist) < this.width + 5) {
-         this.x += dist > 0 ? 0.5 : -0.5;
+        this.x += dist > 0 ? 2.0 : -2.0;
       }
     }
 
     const nowTime = Date.now();
     if (nowTime - this.lastAttack < 500) {
-        this.currentRow = 2; // Attack
-        this.animTimer += 0.15;
+      this.currentRow = 2; // Attack
+      this.animTimer += 0.15;
     } else if (canMove && targetX === -1) {
-        this.currentRow = 1; // Walk
-        this.animTimer += 0.15;
+      this.currentRow = 1; // Walk
+      this.animTimer += 0.15;
     } else {
-        this.currentRow = 0; // Idle
-        this.animTimer += 0.1;
+      this.currentRow = 0; // Idle
+      this.animTimer += 0.1;
     }
     this.currentFrame = Math.floor(this.animTimer) % 6;
 
@@ -203,39 +209,40 @@ export class EnemyArcher {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    const barWidth = 30;
-    const barHeight = 4;
-    ctx.fillStyle = '#c0392b';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth, barHeight);
+    const barWidth = 40;
+    const barHeight = 6;
+    const healthY = drawY - 35;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(drawX - barWidth / 2, healthY, barWidth, barHeight);
     ctx.fillStyle = '#2ecc71';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 10, barWidth * (this.health / this.maxHealth), barHeight);
+    ctx.fillRect(drawX - barWidth / 2, healthY, barWidth * (this.health / this.maxHealth), barHeight);
 
     if (this.processedSprite) {
-        const frameWidth = 100;
-        const frameHeight = 100;
-        const renderSize = 150;
+      const frameWidth = 100;
+      const frameHeight = 100;
+      const renderSize = 150;
 
-        ctx.save();
-        ctx.translate(drawX, drawY);
-        ctx.scale(-1, 1); // Face left
+      ctx.save();
+      ctx.translate(drawX, drawY);
+      ctx.scale(-1, 1); // Face left
 
-        ctx.drawImage(
-            this.processedSprite,
-            this.currentFrame * frameWidth,
-            this.currentRow * frameHeight,
-            frameWidth,
-            frameHeight,
-            -renderSize / 2,
-            -renderSize / 2,
-            renderSize,
-            renderSize
-        );
-        ctx.restore();
+      ctx.drawImage(
+        this.processedSprite,
+        this.currentFrame * frameWidth,
+        this.currentRow * frameHeight,
+        frameWidth,
+        frameHeight,
+        -renderSize / 2,
+        -renderSize / 2,
+        renderSize,
+        renderSize
+      );
+      ctx.restore();
     } else {
-        ctx.beginPath();
-        ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, 5);
-        ctx.fillStyle = this.color;
-        ctx.fill();
+      ctx.beginPath();
+      ctx.roundRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height, 5);
+      ctx.fillStyle = this.color;
+      ctx.fill();
     }
   }
 }

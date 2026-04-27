@@ -8,6 +8,13 @@ export class UpperBase {
     this.maxHealth = 1000;
     this.color = '#34495e'; // Dark fortified color
   }
+  
+  takeDamage(amount, effectsArray) {
+    this.health = Math.max(0, this.health - amount);
+    if (effectsArray) {
+      effectsArray.push({ x: this.x, y: this.y - 40, text: `-${Math.floor(amount)}`, color: '#f1c40f' });
+    }
+  }
 
   draw(ctx, camera) {
     const drawX = this.x - camera.x;

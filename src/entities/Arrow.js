@@ -6,16 +6,16 @@ export class Arrow {
     this.lane = lane;
     this.speed = team === 'player' ? 5 : -5;
     this.damage = damage;
-    this.width = 40;
+    this.width = 70;
     this.height = 40;
     this.active = true;
     this.spawnX = x;
-    this.maxRange = 400; // Arrows disappear after 400 pixels
+    this.maxRange = 1000; // Arrows disappear after 1000 pixels
     this.sprite = new Image();
     this.sprite.src = 'assets/Tiny RPG Character Asset Pack v1.03 -Free Soldier&Orc/Arrow(Projectile)/Arrow01(100x100).png';
   }
 
-  update(targets, targetBase) {
+  update(targets, targetBase, damageEffects = []) {
     this.x += this.speed;
 
     // Check collision with targets (soldiers, archers, or enemies) IN THE SAME LANE
@@ -24,7 +24,7 @@ export class Arrow {
       if (this.x > target.x - target.width / 2 && 
           this.x < target.x + target.width / 2 &&
           Math.abs(this.y - target.y) < target.height / 2) {
-        target.takeDamage(this.damage);
+        target.takeDamage(this.damage, damageEffects);
         this.active = false;
         break;
       }

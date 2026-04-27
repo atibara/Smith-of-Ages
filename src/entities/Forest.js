@@ -119,7 +119,7 @@ export class Forest {
     ctx.beginPath();
     ctx.moveTo(x - 20 * scale, y);
     ctx.lineTo(x + 25 * scale, y);
-    ctx.lineTo(x, y - 40 * scale);
+    ctx.lineTo(x, y - 20 * scale);
     ctx.fill();
 
     // Foliage
@@ -127,7 +127,7 @@ export class Forest {
     ctx.beginPath();
     ctx.moveTo(x - 25 * scale, y);
     ctx.lineTo(x + 20 * scale, y);
-    ctx.lineTo(x, y - 40 * scale);
+    ctx.lineTo(x, y - 20 * scale);
     ctx.fill();
     
     ctx.fillStyle = '#1e8449';

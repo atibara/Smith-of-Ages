@@ -2,10 +2,10 @@ export class Armory {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 150;
-    this.height = 70;
+    this.width = 120;
+    this.height = 60;
     this.color = '#c0392b'; // Dark red theme
-    this.interactionRadius = 150;
+    this.interactionRadius = 100;
   }
 
   draw(ctx, camera, player = null) {

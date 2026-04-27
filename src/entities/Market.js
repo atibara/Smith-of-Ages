@@ -2,9 +2,9 @@ export class Market {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 140;
-    this.height = 110;
-    this.interactionRadius = 130;
+    this.width = 120;
+    this.height = 60;
+    this.interactionRadius = 100;
     this.color = '#e67e22'; // Orange/Brown for market
   }
 

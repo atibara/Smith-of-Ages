@@ -3,7 +3,7 @@ import { LANE_Y } from '../Constants.js';
 export class Soldier {
   constructor(x, yOffset, lane = 1) {
     this.width = 40;
-    this.height = 70;
+    this.height = 60;
     this.x = x;
     this.y = yOffset; // Vertical center of the upper world path
     this.lane = lane; // 0 (top), 1 (middle), 2 (bottom)
@@ -52,11 +52,15 @@ export class Soldier {
     return canvas;
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, effectsArray) {
     this.health -= amount;
+    if (effectsArray) {
+      // We pass a simple object that main.js will convert to a DamageEffect instance
+      effectsArray.push({ x: this.x, y: this.y - 20, text: `-${Math.floor(amount)}`, color: '#f1c40f' }); // Yellow for friendly hit
+    }
   }
 
-  update(allSoldiers, allEnemies, enemyBase, allArchers = [], mangonels = []) {
+  update(allSoldiers, allEnemies, enemyBase, allArchers = [], mangonels = [], damageEffects = []) {
     if (this.health <= 0) return;
 
     let canMove = true;
@@ -106,7 +110,7 @@ export class Soldier {
         if (minXDist < attackRange) {
           const now = Date.now();
           if (now - this.lastAttack > this.attackDelay) {
-            closestEnemy.takeDamage(this.attackDamage);
+            closestEnemy.takeDamage(this.attackDamage, damageEffects);
             this.lastAttack = now;
             this.isAttacking = true;
           }
@@ -130,7 +134,7 @@ export class Soldier {
     if (enemyBase && distToBase < enemyBase.width / 2 + attackRange) {
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
-        enemyBase.health = Math.max(0, enemyBase.health - this.attackDamage);
+        enemyBase.takeDamage(this.attackDamage, damageEffects);
         this.lastAttack = now;
         this.isAttacking = true;
       }
@@ -193,7 +197,7 @@ export class Soldier {
          dist = this.id > other.id ? 0.1 : -0.1;
       }
       if (Math.abs(dist) < this.width + 5) {
-         this.x += dist > 0 ? 0.5 : -0.5;
+         this.x += dist > 0 ? 2.0 : -2.0; // Firmer push
       }
     }
 
@@ -228,12 +232,13 @@ export class Soldier {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    const barWidth = 30;
-    const barHeight = 4;
+    const barWidth = 40;
+    const barHeight = 6;
+    const healthY = drawY - 35; 
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 15, barWidth, barHeight);
+    ctx.fillRect(drawX - barWidth / 2, healthY, barWidth, barHeight);
     ctx.fillStyle = '#2ecc71';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 15, barWidth * (this.health / this.maxHealth), barHeight);
+    ctx.fillRect(drawX - barWidth / 2, healthY, barWidth * (this.health / this.maxHealth), barHeight);
 
     if (this.processedSprite) {
         // Updated for 100x100 grid from Tiny RPG pack

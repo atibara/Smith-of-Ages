@@ -3,7 +3,7 @@ import { LANE_Y } from '../Constants.js';
 export class Enemy {
   constructor(x, yOffset, lane = 1) {
     this.width = 40;
-    this.height = 70;
+    this.height = 60;
     this.x = x;
     this.y = yOffset;
     this.lane = lane; // 0, 1, 2
@@ -53,11 +53,14 @@ export class Enemy {
     return canvas;
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, effectsArray) {
     this.health -= amount;
+    if (effectsArray) {
+      effectsArray.push({ x: this.x, y: this.y - 20, text: `-${Math.floor(amount)}`, color: '#e74c3c' }); // Red for enemy hit
+    }
   }
 
-  update(allEnemies, allPlayers, upperBase) {
+  update(allEnemies, allPlayers, upperBase, arrows = [], damageEffects = []) {
     if (this.health <= 0) return;
 
     let canMove = true;
@@ -102,7 +105,7 @@ export class Enemy {
         if (minXDist < attackRange) {
           const now = Date.now();
           if (now - this.lastAttack > this.attackDelay) {
-            closestPlayer.takeDamage(this.attackDamage);
+            closestPlayer.takeDamage(this.attackDamage, damageEffects);
             this.lastAttack = now;
             this.isAttacking = true;
           }
@@ -125,7 +128,7 @@ export class Enemy {
     if (upperBase && distToBase < upperBase.width / 2 + attackRange) {
       const now = Date.now();
       if (now - this.lastAttack > this.attackDelay) {
-        upperBase.health = Math.max(0, upperBase.health - this.attackDamage);
+        upperBase.takeDamage(this.attackDamage, damageEffects);
         this.lastAttack = now;
         this.isAttacking = true;
       }
@@ -188,7 +191,7 @@ export class Enemy {
          dist = this.id > other.id ? 0.1 : -0.1;
       }
       if (Math.abs(dist) < this.width + 5) {
-         this.x += dist > 0 ? 0.5 : -0.5;
+         this.x += dist > 0 ? 2.0 : -2.0;
       }
     }
 
@@ -223,12 +226,13 @@ export class Enemy {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    const barWidth = 30;
-    const barHeight = 4;
+    const barWidth = 40;
+    const barHeight = 6;
+    const healthY = drawY - 35;
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 15, barWidth, barHeight);
+    ctx.fillRect(drawX - barWidth / 2, healthY, barWidth, barHeight);
     ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(drawX - barWidth / 2, drawY - this.height / 2 - 15, barWidth * (this.health / this.maxHealth), barHeight);
+    ctx.fillRect(drawX - barWidth / 2, healthY, barWidth * (this.health / this.maxHealth), barHeight);
 
     if (this.processedSprite) {
         const frameWidth = 100;

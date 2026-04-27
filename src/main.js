@@ -14,6 +14,22 @@ import { UpperBase } from './entities/UpperBase.js';
 import { Market } from './entities/Market.js';
 import { EnemyBase } from './entities/EnemyBase.js';
 import { UPPER_WORLD_HEIGHT, LANE_Y, GRID_SIZE } from './Constants.js';
+ 
+// --- COMPATIBILITY SHIM ---
+if (typeof CanvasRenderingContext2D.prototype.roundRect !== 'function') {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    this.beginPath();
+    this.moveTo(x + r, y);
+    this.arcTo(x + w, y, x + w, y + h, r);
+    this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r);
+    this.arcTo(x, y, x + w, y, r);
+    this.closePath();
+    return this;
+  };
+}
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -54,6 +70,36 @@ let playerLevel = 1;
 let playerXP = 0;
 let xpToNextLevel = 100;
 const xpOrbs = [];
+const damageEffects = []; // New global array
+
+class DamageEffect {
+  constructor(x, y, text, color = '#e74c3c') {
+    this.x = x;
+    this.y = y;
+    this.text = text;
+    this.color = color;
+    this.opacity = 1.0;
+    this.vY = -0.8; // Slower upward movement
+    this.life = 1.0; 
+  }
+
+  update() {
+    this.y += this.vY;
+    this.life -= 0.02;
+    this.opacity = Math.max(0, this.life);
+    return this.life > 0;
+  }
+
+  draw(ctx, camera) {
+    ctx.save();
+    ctx.globalAlpha = this.opacity;
+    ctx.fillStyle = this.color;
+    ctx.font = 'bold 16px Outfit'; // Smaller, better font
+    ctx.textAlign = 'center';
+    ctx.fillText(this.text, this.x - camera.x, this.y - camera.y);
+    ctx.restore();
+  }
+}
 
 class XPOrb {
   constructor(x, y, value) {
@@ -152,28 +198,29 @@ function resize() {
   canvas.height = height;
   ctx.imageSmoothingEnabled = false;
   
-  // Position buildings based on 1200x800 virtual space
+  const midY = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2;
+  
+  // --- Resource District (West) ---
+  forest.x = 180;
+  forest.y = UPPER_WORLD_HEIGHT + 120;
+  mine.x = 180;
+  mine.y = height - 160;
+
+  // --- Military District (East) ---
+  armory.x = width - 180;
+  armory.y = UPPER_WORLD_HEIGHT + 120;
+  workshop.x = width - 180;
+  workshop.y = height - 160;
+
+  // --- Village Center (Center) ---
   smithy.x = width / 2;
-  smithy.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2;
-  
-  mine.x = 200;
-  mine.y = height - 120;
+  smithy.y = midY - 120; // Moved further up
+  market.x = width / 2 - 150;
+  market.y = midY + 140; // Moved further down
 
-  forest.x = 200;
-  forest.y = UPPER_WORLD_HEIGHT + 140;
-  
-  armory.x = width - 200;
-  armory.y = UPPER_WORLD_HEIGHT + 140;
-
-  workshop.x = width - 200;
-  workshop.y = height - 120;
-
-  market.x = width / 2 - 250;
-  market.y = (forest.y + mine.y) / 2;
-
+  // --- Battlefield Bases ---
   upperBase.x = 80;
   upperBase.y = UPPER_WORLD_HEIGHT / 2;
-  
   enemyBase.x = width - 80;
   enemyBase.y = UPPER_WORLD_HEIGHT / 2;
 
@@ -184,7 +231,7 @@ window.addEventListener('resize', resize);
 resize();
 
 player.x = width / 2;
-player.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2 + 100;
+player.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2; // midY
 player.targetX = player.x;
 player.targetY = player.y;
 
@@ -389,19 +436,19 @@ function update() {
   }
 
   for (let i = soldiers.length - 1; i >= 0; i--) {
-    soldiers[i].update(soldiers, enemies, enemyBase, archers, mangonels);
+    soldiers[i].update(soldiers, enemies, enemyBase, archers, mangonels, damageEffects);
     if (soldiers[i].health <= 0) soldiers.splice(i, 1);
   }
   for (let i = archers.length - 1; i >= 0; i--) {
-    archers[i].update(archers, enemies, enemyBase, arrows, soldiers, mangonels);
+    archers[i].update(archers, enemies, enemyBase, arrows, soldiers, mangonels, damageEffects);
     if (archers[i].health <= 0) archers.splice(i, 1);
   }
   for (let i = mangonels.length - 1; i >= 0; i--) {
-    mangonels[i].update(mangonels, enemies, enemyBase, stones, player, allPlayerUnits);
+    mangonels[i].update(mangonels, enemies, enemyBase, stones, player, allPlayerUnits, damageEffects);
     if (mangonels[i].health <= 0) mangonels.splice(i, 1);
   }
   for (let i = enemies.length - 1; i >= 0; i--) {
-    enemies[i].update(enemies, allPlayerUnits.concat(mangonels.filter(m => m.state === 'COMBAT')), upperBase, arrows);
+    enemies[i].update(enemies, allPlayerUnits.concat(mangonels.filter(m => m.state === 'COMBAT')), upperBase, arrows, damageEffects);
     if (enemies[i].health <= 0 || enemies[i].x < -100) {
       if (enemies[i].health <= 0) {
         gold += enemies[i].goldReward || 0;
@@ -429,17 +476,28 @@ function update() {
   }
   for (let i = arrows.length - 1; i >= 0; i--) {
     if (arrows[i].team === 'player') {
-      arrows[i].update(enemies, enemyBase);
+      arrows[i].update(enemies, enemyBase, damageEffects);
     } else {
-      arrows[i].update(allPlayerUnits.concat(mangonels), upperBase);
+      arrows[i].update(allPlayerUnits.concat(mangonels), upperBase, damageEffects);
     }
     if (!arrows[i].active) arrows.splice(i, 1);
   }
   for (let i = stones.length - 1; i >= 0; i--) {
-    stones[i].update(enemies, enemyBase);
+    stones[i].update(enemies, enemyBase, damageEffects);
     if (!stones[i].active) stones.splice(i, 1);
   }
   
+  // Update Damage Effects
+  for (let j = damageEffects.length - 1; j >= 0; j--) {
+      const eff = damageEffects[j];
+      if (!(eff instanceof DamageEffect)) {
+          damageEffects[j] = new DamageEffect(eff.x, eff.y, eff.text, eff.color);
+      }
+      if (!damageEffects[j].update()) {
+          damageEffects.splice(j, 1);
+      }
+  }
+
   updateHUD();
 }
 
@@ -483,8 +541,7 @@ function render() {
   ctx.lineTo(width, UPPER_WORLD_HEIGHT);
   ctx.stroke();
   drawGrid();
-  upperBase.draw(ctx, camera);
-  enemyBase.draw(ctx, camera);
+  // Draw Lower World Buildings and Player
   mine.draw(ctx, camera, player);
   forest.draw(ctx, camera, player);
   market.draw(ctx, camera, player);
@@ -492,12 +549,14 @@ function render() {
   smithy.draw(ctx, camera, player);
   armory.draw(ctx, camera, player);
   player.draw(ctx, camera);
+  
   mine.drawUI(ctx, camera, player);
   forest.drawUI(ctx, camera, player);
   market.drawUI(ctx, camera, player);
   workshop.drawUI(ctx, camera, player);
   smithy.drawUI(ctx, camera, player);
   armory.drawUI(ctx, camera, player);
+
   mangonels.filter(m => m.state === 'FOLLOWING').forEach(m => m.draw(ctx, camera));
   soldiers.forEach(s => s.draw(ctx, camera));
   archers.forEach(a => a.draw(ctx, camera));
@@ -506,6 +565,13 @@ function render() {
   arrows.forEach(a => a.draw(ctx, camera));
   stones.forEach(s => s.draw(ctx, camera));
   xpOrbs.forEach(orb => orb.draw(ctx));
+  damageEffects.forEach(eff => {
+    if (eff instanceof DamageEffect) eff.draw(ctx, camera);
+  });
+
+  // --- DRAW BASES LAST (to cover units coming out) ---
+  upperBase.draw(ctx, camera);
+  enemyBase.draw(ctx, camera);
 
   ctx.fillStyle = '#fff';
   ctx.font = '16px monospace';

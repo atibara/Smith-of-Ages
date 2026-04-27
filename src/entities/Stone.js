@@ -26,7 +26,7 @@ export class Stone {
     this.step = 1 / this.duration;
   }
 
-  update(targets, targetBase) {
+  update(targets, targetBase, damageEffects = []) {
     this.progress += this.step;
     
     // Horizontal linear interpolation
@@ -39,12 +39,12 @@ export class Stone {
 
     // Check for impact
     if (this.progress >= 1) {
-      this.explode(targets, targetBase);
+      this.explode(targets, targetBase, damageEffects);
       this.active = false;
     }
   }
 
-  explode(targets, targetBase) {
+  explode(targets, targetBase, damageEffects = []) {
     // Area-of-Effect Damage
     for (const target of targets) {
       const dx = target.x - this.targetX;
@@ -54,7 +54,7 @@ export class Stone {
       if (distance < this.aoeRadius) {
         // Full damage at center, slightly less at edges? 
         // For simplicity: full damage if in range
-        target.takeDamage(this.damage);
+        target.takeDamage(this.damage, damageEffects);
       }
     }
 
@@ -64,7 +64,7 @@ export class Stone {
       const dy = targetBase.y - this.targetY;
       const distance = Math.sqrt(dx * dx + dy * dy);
       if (distance < this.aoeRadius + targetBase.width / 2) {
-        targetBase.health = Math.max(0, targetBase.health - this.damage);
+        targetBase.takeDamage(this.damage, damageEffects);
       }
     }
   }
