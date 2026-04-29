@@ -67,6 +67,7 @@ let gold = 0;
 
 let nextSoldierLane = 0;
 let nextEnemyLane = 0;
+let playerSpawnQueue = [];
 
 // XP System
 let playerLevel = 1;
@@ -332,10 +333,10 @@ window.addEventListener('keydown', (e) => {
         const spawnLane = targetLane !== -1 ? targetLane : nextSoldierLane;
         if (swordIndex !== -1) {
           player.inventory.splice(swordIndex, 1);
-          soldiers.push(new Soldier(upperBase.x, LANE_Y[spawnLane], spawnLane));
+          playerSpawnQueue.push({ type: 'soldier', lane: spawnLane });
         } else if (bowIndex !== -1) {
           player.inventory.splice(bowIndex, 1);
-          archers.push(new Archer(upperBase.x, LANE_Y[spawnLane], spawnLane));
+          playerSpawnQueue.push({ type: 'archer', lane: spawnLane });
         }
         if (targetLane === -1) {
           nextSoldierLane = (nextSoldierLane + 1) % LANE_Y.length;
@@ -395,6 +396,30 @@ function update() {
   if (gameState !== 'PLAYING') return;
 
   const allPlayerUnits = soldiers.concat(archers);
+  
+  if (playerSpawnQueue.length > 0) {
+    let spawnedIndex = -1;
+    for (let i = 0; i < playerSpawnQueue.length; i++) {
+       const req = playerSpawnQueue[i];
+       let laneClear = true;
+       for (const u of allPlayerUnits) {
+          if (u.lane === req.lane && Math.abs(u.x - upperBase.x) < 50) {
+             laneClear = false;
+             break;
+          }
+       }
+       if (laneClear) {
+          if (req.type === 'soldier') soldiers.push(new Soldier(upperBase.x, LANE_Y[req.lane], req.lane));
+          else if (req.type === 'archer') archers.push(new Archer(upperBase.x, LANE_Y[req.lane], req.lane));
+          spawnedIndex = i;
+          break;
+       }
+    }
+    if (spawnedIndex !== -1) {
+       playerSpawnQueue.splice(spawnedIndex, 1);
+    }
+  }
+
   if (allPlayerUnits.length > 0) {
     const maxX = Math.max(...allPlayerUnits.map(u => u.x));
     const proximity = Math.min(1, Math.max(0, (maxX - upperBase.x) / (enemyBase.x - upperBase.x)));
@@ -539,39 +564,29 @@ function render() {
   ctx.lineTo(width, UPPER_WORLD_HEIGHT);
   ctx.stroke();
   drawGrid();
-  // Draw Lower World Buildings and Player
-  mine.draw(ctx, camera, player);
-  forest.draw(ctx, camera, player);
-  market.draw(ctx, camera, player);
-  workshop.draw(ctx, camera, player);
-  smithy.draw(ctx, camera, player);
-  armory.draw(ctx, camera, player);
-  player.draw(ctx, camera);
+  const drawables = [smithy, mine, forest, armory, workshop, market, enemyBase, upperBase, player, ...soldiers, ...archers, ...enemies, ...mangonels, ...stones, ...arrows];
+  drawables.sort((a, b) => {
+      const getBaseY = (obj) => {
+          if (obj.constructor.name === 'Player') return obj.y + 40; // Player's feet
+          return obj.y + (obj.height ? obj.height / 2 : 0);
+      };
+      return getBaseY(a) - getBaseY(b);
+  });
   
-  mine.drawUI(ctx, camera, player);
-  forest.drawUI(ctx, camera, player);
-  market.drawUI(ctx, camera, player);
-  workshop.drawUI(ctx, camera, player);
-  smithy.drawUI(ctx, camera, player);
-  armory.drawUI(ctx, camera, player);
+  // Render drawables in sorted depth order
+  drawables.forEach(d => {
+      if (typeof d.draw === 'function') d.draw(ctx, camera, player);
+  });
 
-  mangonels.filter(m => m.state === 'FOLLOWING').forEach(m => m.draw(ctx, camera));
-  soldiers.forEach(s => s.draw(ctx, camera));
-  archers.forEach(a => a.draw(ctx, camera));
-  mangonels.filter(m => m.state === 'COMBAT').forEach(m => m.draw(ctx, camera));
-  enemies.forEach(e => e.draw(ctx, camera));
-  arrows.forEach(a => a.draw(ctx, camera));
-  stones.forEach(s => s.draw(ctx, camera));
+  // Render UI overlays (interaction prompts)
+  [mine, forest, market, workshop, smithy, armory].forEach(b => {
+      if (typeof b.drawUI === 'function') b.drawUI(ctx, camera, player);
+  });
+  
   xpOrbs.forEach(orb => orb.draw(ctx));
   damageEffects.forEach(eff => {
     if (eff instanceof DamageEffect) eff.draw(ctx, camera);
   });
-
-  // --- DRAW BASES LAST (to cover units coming out) ---
-  upperBase.draw(ctx, camera);
-  enemyBase.draw(ctx, camera);
- 
-   ctx.fillStyle = '#fff';
 
   ctx.fillStyle = '#fff';
   ctx.font = '16px monospace';

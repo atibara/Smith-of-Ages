@@ -140,8 +140,7 @@ export class Enemy {
       for (const other of allEnemies) {
         if (other === this || other.lane !== this.lane) continue;
         
-        const isArcher = other.constructor.name === 'EnemyArcher';
-        const effectivePadding = isArcher ? -this.width : padding;
+        const effectivePadding = padding;
 
         if (other.x < this.x && this.x - other.x < this.width + effectivePadding) {
           canMove = false;
@@ -209,8 +208,6 @@ export class Enemy {
       }
     }
 
-    // Animation update
-    const now = Date.now();
     if (this.isAttacking) {
         this.currentRow = 2; // Attack
         this.animTimer += 0.15;

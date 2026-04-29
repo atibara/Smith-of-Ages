@@ -147,8 +147,7 @@ export class Soldier {
       for (const other of allTeammates) {
         if (other === this || other.lane !== this.lane) continue;
         
-        const isArcher = other.constructor.name === 'Archer' || other.constructor.name === 'EnemyArcher';
-        const effectivePadding = isArcher ? -this.width : padding; 
+        const effectivePadding = padding;
 
         if (other.x > this.x && other.x - this.x < this.width + effectivePadding - 5) {
           canMove = false;
@@ -212,8 +211,6 @@ export class Soldier {
       }
     }
 
-    // Animation update
-    const now = Date.now();
     if (this.isAttacking) {
         this.currentRow = 2; // Attack01
         this.animTimer += 0.15;

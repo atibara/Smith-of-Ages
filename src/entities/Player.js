@@ -8,8 +8,8 @@ export class Player {
     this.height = 100;
     this.radius = 20;
     this.color = '#f39c12';
-    this.speedBase = 2.0;
-    this.speed = 2.0;
+    this.speedBase = 4.5;
+    this.speed = 4.5;
     
     this.targetX = x;
     this.targetY = y;
@@ -20,47 +20,49 @@ export class Player {
     this.maxInventory = 5;
 
     // --- SPRITE ANIMATION ---
-    this.image = new Image();
-    this.processedImage = null;
-    this.image.onload = () => {
-        this.processedImage = this.removeWhiteBackground(this.image);
-    };
-    this.image.src = 'assets/player.png'; // Path to the player sprite
+    this.idleImage = new Image();
+    this.idleImage.src = 'assets/The Male adventurer - Free/Idle/idle.png';
+    this.walkImage = new Image();
+    this.walkImage.src = 'assets/The Male adventurer - Free/Walk/walk.png';
+    
     this.currentFrame = 0;
     this.currentRow = 0;
-    this.animationSpeed = 100; // Frame transition speed (ms)
+    this.lastDirectionRow = 0;
+    this.animationSpeed = 80; // Frame transition speed (ms)
     this.lastAnimTime = Date.now();
   }
 
-  removeWhiteBackground(img) {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
-      if (brightness > 240) {
-        data[i+3] = 0;
-      }
-    }
-    ctx.putImageData(imageData, 0, 0);
-    return canvas;
+  getDirectionRow(dx, dy) {
+    let angle = Math.atan2(dy, dx);
+    if (angle < 0) angle += 2 * Math.PI;
+
+    if (angle >= Math.PI / 3 && angle < 2 * Math.PI / 3) return 0; // down
+    if (angle >= 2 * Math.PI / 3 && angle < Math.PI) return 1; // left_down
+    if (angle >= Math.PI && angle < 4 * Math.PI / 3) return 2; // left_up
+    if (angle >= 4 * Math.PI / 3 && angle < 5 * Math.PI / 3) return 3; // up
+    if (angle >= 5 * Math.PI / 3 && angle < 2 * Math.PI) return 4; // right_up
+    return 5; // right_down
   }
 
   setTarget(x, y, obstacles = [], worldBounds = null) {
     if (worldBounds) {
-      // Use dimensions that match the collision box in update()
-      // width/2 = 30, height/2 = 50
-      const paddingX = this.width / 2;
-      const paddingY = this.height / 2;
-      this.path = Pathfinder.findPath(this.x, this.y, x, y, obstacles, worldBounds, paddingX, paddingY);
+      const paddingX = 5;  // Shrunk bounding box buffer
+      const paddingY = 0;  // Zero vertical buffer for feet
+      const feetY = this.y + 40; // Player feet are roughly 40px below center
+      
+      // Temporarily shrink obstacle bounding boxes for pathfinding
+      const shrunkObstacles = obstacles.map(obs => ({
+          x: obs.x,
+          y: obs.y,
+          width: Math.max(0, obs.width - 30),
+          height: Math.max(0, obs.height - 30)
+      }));
+
+      this.path = Pathfinder.findPath(this.x, feetY, x, y, shrunkObstacles, worldBounds, paddingX, paddingY);
       if (this.path.length > 0) {
          this.isMoving = true;
          this.targetX = this.path[0].x;
-         this.targetY = this.path[0].y;
+         this.targetY = this.path[0].y; // targetY now represents feet destination
       } else {
          this.isMoving = false;
       }
@@ -73,25 +75,23 @@ export class Player {
 
   update(worldBounds, obstacles = []) {
     if (this.isMoving) {
+      const feetY = this.y + 40;
       const dx = this.targetX - this.x;
-      const dy = this.targetY - this.y;
+      const dy = this.targetY - feetY;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       let nextX = this.x;
-      let nextY = this.y;
+      let nextFeetY = feetY;
 
       if (distance < this.speed) {
         nextX = this.targetX;
-        nextY = this.targetY;
+        nextFeetY = this.targetY;
         
         if (this.path.length > 0) {
             this.path.shift();
             if (this.path.length > 0) {
                 this.targetX = this.path[0].x;
                 this.targetY = this.path[0].y;
-                // Don't stop moving, continue to next frame logic
-                nextX = this.x;
-                nextY = this.y;
             } else {
                 this.isMoving = false;
             }
@@ -100,22 +100,22 @@ export class Player {
         }
       } else {
         nextX += (dx / distance) * this.speed;
-        nextY += (dy / distance) * this.speed;
+        nextFeetY += (dy / distance) * this.speed;
       }
 
-      // Check collision
+      // Check collision using feet and shrunk obstacle boxes
       let collides = false;
       for (const obs of obstacles) {
-        const obsLeft = obs.x - obs.width / 2;
-        const obsRight = obs.x + obs.width / 2;
-        const obsTop = obs.y - obs.height / 2;
-        const obsBottom = obs.y + obs.height / 2;
+        // Shrink building hitboxes by 15px per side
+        const obsLeft = obs.x - obs.width / 2 + 15;
+        const obsRight = obs.x + obs.width / 2 - 15;
+        const obsTop = obs.y - obs.height / 2 + 15;
+        const obsBottom = obs.y + obs.height / 2 - 15;
 
-        const pLeft = nextX - this.width / 2;
-        const pRight = nextX + this.width / 2;
-        // make collision box slightly smaller than the sprite for better feel
-        const pTop = nextY - this.height / 4; 
-        const pBottom = nextY + this.height / 2;
+        const pLeft = nextX - 20;
+        const pRight = nextX + 20;
+        const pTop = nextFeetY - 15; 
+        const pBottom = nextFeetY + 15;
 
         if (pRight > obsLeft && pLeft < obsRight && pBottom > obsTop && pTop < obsBottom) {
            collides = true;
@@ -127,16 +127,18 @@ export class Player {
         this.isMoving = false;
         this.path = [];
         this.targetX = this.x;
-        this.targetY = this.y;
+        this.targetY = feetY;
       } else {
         this.x = nextX;
-        this.y = nextY;
+        this.y = nextFeetY - 40;
       }
     }
 
     if (worldBounds) {
-      this.x = Math.max(worldBounds.minX + this.width / 2, Math.min(this.x, worldBounds.maxX - this.width / 2));
-      this.y = Math.max(worldBounds.minY + this.height / 2, Math.min(this.y, worldBounds.maxY - this.height / 2));
+      this.x = Math.max(worldBounds.minX + 20, Math.min(this.x, worldBounds.maxX - 20));
+      let fY = this.y + 40;
+      fY = Math.max(worldBounds.minY + 15, Math.min(fY, worldBounds.maxY - 15));
+      this.y = fY - 40;
     }
   }
 
@@ -144,46 +146,42 @@ export class Player {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    if (this.processedImage) {
-      // SPRITE DRAWING
-      const cols = 7;  
-      const rows = 4; 
-      const frameWidth = this.processedImage.width / cols;
-      const frameHeight = this.processedImage.height / rows;
+    const activeImage = this.isMoving ? this.walkImage : this.idleImage;
 
-      if (this.isMoving) {
-        const now = Date.now();
-        if (now - this.lastAnimTime > this.animationSpeed) {
-          this.currentFrame = ((this.currentFrame + 1) % (cols - 1)) + 1; 
-          this.lastAnimTime = now;
-        }
-        
-        const dx = this.targetX - this.x;
-        const dy = this.targetY - this.y;
-        
-        if (Math.abs(dx) > Math.abs(dy)) {
-          this.currentRow = dx > 0 ? 3 : 2; 
-        } else {
-          this.currentRow = dy > 0 ? 1 : 2; 
-        }
-      } else {
-        this.currentFrame = 0; 
-        this.currentRow = 0;   
+    if (activeImage && activeImage.complete && activeImage.naturalWidth > 0) {
+      // SPRITE DRAWING
+      const cols = 8;  
+      const rows = 6; 
+      const frameWidth = 48;
+      const frameHeight = 64;
+
+      const now = Date.now();
+      if (now - this.lastAnimTime > this.animationSpeed) {
+        this.currentFrame = (this.currentFrame + 1) % cols; 
+        this.lastAnimTime = now;
       }
       
-      const renderWidth = this.width; 
-      const renderHeight = this.height;
+      if (this.isMoving) {
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+            this.lastDirectionRow = this.getDirectionRow(dx, dy);
+        }
+      }
+      this.currentRow = this.lastDirectionRow;
+
+      const renderSize = 120; // Scale up the 64x64 frame for visibility
 
       ctx.drawImage(
-        this.processedImage,
+        activeImage,
         this.currentFrame * frameWidth,
         this.currentRow * frameHeight,
         frameWidth,
         frameHeight,
-        drawX - renderWidth / 2,
-        drawY - renderHeight / 2,
-        renderWidth,
-        renderHeight
+        drawX - renderSize / 2,
+        drawY - renderSize / 2 - 10,
+        renderSize,
+        renderSize
       );
     } else {
       // FALLBACK: Draw the old orange player if the image is not loaded
