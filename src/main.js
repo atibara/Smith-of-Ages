@@ -626,15 +626,23 @@ function render() {
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = '#e74c3c';
     ctx.font = 'bold 48px monospace';
+    ctx.textAlign = 'center';
     ctx.fillText('DEFEAT - BASE DESTROYED', width / 2, height / 2);
+    ctx.font = '24px monospace';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('Press R to restart', width / 2, height / 2 + 60);
+    gameState = 'GAMEOVER';
   } else if (enemyBase.health <= 0) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = '#2ecc71';
     ctx.font = 'bold 48px monospace';
+    ctx.textAlign = 'center';
     ctx.fillText('VICTORY - ENEMY BASE DESTROYED', width / 2, height / 2);
-  } else {
-    requestAnimationFrame(gameLoop);
+    ctx.font = '24px monospace';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('Press R to restart', width / 2, height / 2 + 60);
+    gameState = 'GAMEOVER';
   }
 }
 
@@ -672,12 +680,60 @@ if (closeMarketBtn) {
   });
 }
 
+let loopRunning = false;
+
 function gameLoop() {
-  update();
-  render();
+  loopRunning = true;
+  try {
+    update();
+  } catch (e) {
+    console.error('[update] error:', e);
+  }
+  try {
+    render();
+  } catch (e) {
+    console.error('[render] error:', e);
+  }
+  if (gameState !== 'GAMEOVER') {
+    requestAnimationFrame(gameLoop);
+  } else {
+    loopRunning = false;
+  }
 }
 
-gameLoop();
+function restartGame() {
+  // Reset all game state
+  upperBase.health = upperBase.maxHealth;
+  enemyBase.health = enemyBase.maxHealth;
+  soldiers.length = 0;
+  archers.length = 0;
+  mangonels.length = 0;
+  enemies.length = 0;
+  arrows.length = 0;
+  stones.length = 0;
+  xpOrbs.length = 0;
+  damageEffects.length = 0;
+  playerSpawnQueue.length = 0;
+  gold = 0;
+  playerLevel = 1;
+  playerXP = 0;
+  xpToNextLevel = 100;
+  nextSoldierLane = 0;
+  nextEnemyLane = 0;
+  lastEnemySpawn = Date.now();
+  currentSpawnInterval = ENEMY_SPAWN_INTERVAL_MAX;
+  player.x = width / 2;
+  player.y = UPPER_WORLD_HEIGHT + (height - UPPER_WORLD_HEIGHT) / 2;
+  player.targetX = player.x;
+  player.targetY = player.y;
+  player.inventory = [];
+  player.speedBase = 4.5;
+  player.speed = 4.5;
+  player.isMoving = false;
+  player.path = [];
+  gameState = 'PLAYING';
+  if (!loopRunning) gameLoop();
+}
 
 // --- UI EVENT LISTENERS ---
 const playBtn = document.getElementById('btn-play');
@@ -688,6 +744,7 @@ if (playBtn) {
       const gameHud = document.getElementById('game-hud');
       if (gameHud) gameHud.classList.remove('hidden');
       gameState = 'PLAYING';
+      if (!loopRunning) gameLoop();
   });
 }
 
@@ -730,3 +787,16 @@ if (backExitBtn) {
       if (mainMenu) mainMenu.classList.remove('hidden');
   });
 }
+
+// R key: restart from GAMEOVER
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyR' && gameState === 'GAMEOVER') {
+    const mainMenu = document.getElementById('main-menu');
+    if (mainMenu) mainMenu.classList.remove('hidden');
+    const gameHud = document.getElementById('game-hud');
+    if (gameHud) gameHud.classList.add('hidden');
+    restartGame();
+    const menu = document.getElementById('main-menu');
+    if (menu) menu.classList.add('hidden');
+  }
+});
