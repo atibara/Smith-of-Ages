@@ -2,11 +2,13 @@ export class EnemyBase {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 100;
-    this.height = 120;
+    this.width = 160;
+    this.height = 180;
     this.health = 1000;
     this.maxHealth = 1000;
-    this.color = '#c0392b'; // Dark red for enemy base
+    this.color = '#c0392b';
+    this.sprite = new Image();
+    this.sprite.src = 'assets/Building.png';
   }
   
   takeDamage(amount, effectsArray) {
@@ -20,18 +22,28 @@ export class EnemyBase {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // Draw main building
-    ctx.fillStyle = this.color;
-    ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
+    const sw = this.sprite.width / 4;
+    const sh = this.sprite.height / 2;
+    const sx = sw * 3;
+    const sy = sh;
     
-    // Draw some architectural details
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2, 20, 20);
-    ctx.fillRect(drawX + this.width / 2 - 20, drawY - this.height / 2, 20, 20);
-    
-    // Draw an entrance
-    ctx.fillStyle = '#000';
-    ctx.fillRect(drawX - this.width / 2, drawY + 10, 20, 50);
+    const renderSize = 300; // Even bigger for the enemy fortress
+    if (this.sprite.complete && this.sprite.naturalWidth > 0) {
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 25;
+      ctx.shadowOffsetY = 15;
+      ctx.drawImage(
+        this.sprite,
+        sx, sy, sw, sh,
+        drawX - renderSize / 2,
+        drawY - renderSize / 2,
+        renderSize,
+        renderSize
+      );
+      ctx.restore();
+    }
 
     // Modern Health Bar
     const barWidth = 140;

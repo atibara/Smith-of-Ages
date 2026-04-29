@@ -6,64 +6,36 @@ export class Armory {
     this.height = 60;
     this.color = '#c0392b'; // Dark red theme
     this.interactionRadius = 100;
+    this.sprite = new Image();
+    this.sprite.src = 'assets/Building.png';
   }
 
   draw(ctx, camera, player = null) {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // 3D Depth
-    ctx.beginPath();
-    ctx.rect(drawX - this.width / 2, drawY - this.height / 2 + 20, this.width, this.height);
-    ctx.fillStyle = '#922b21'; // Darker red
-    ctx.fill();
-    ctx.closePath();
-
-    // Draw building
-    ctx.beginPath();
-    ctx.rect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-    ctx.closePath();
+    const sw = this.sprite.width / 4;
+    const sh = this.sprite.height / 2;
+    const sx = 0;
+    const sy = sh;
     
-    // Tent entrance depth
-    ctx.fillStyle = '#1a252f';
-    ctx.beginPath();
-    ctx.arc(drawX, drawY + this.height / 2 + 5, 20, Math.PI, 0);
-    ctx.fill();
-    ctx.closePath();
-
-    // Draw tent-like entrance
-    ctx.fillStyle = '#2c3e50';
-    ctx.beginPath();
-    ctx.arc(drawX, drawY + this.height / 2, 20, Math.PI, 0);
-    ctx.fill();
-    ctx.closePath();
-
-    // Draw Quartermaster NPC
-    const npcX = drawX + 35;
-    const npcY = drawY + this.height / 2 + 10;
-    this.drawNPC(ctx, npcX, npcY, '#c0392b', '#e67e22'); // dark red uniform
-
-    // Label
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('Armory', drawX, drawY - this.height / 2 - 10);
-  }
-
-  drawNPC(ctx, x, y, clothesColor, skinColor) {
-    // Body
-    ctx.fillStyle = clothesColor;
-    ctx.fillRect(x - 8, y - 10, 16, 20);
-    // Head
-    ctx.fillStyle = skinColor;
-    ctx.beginPath();
-    ctx.arc(x, y - 15, 8, 0, Math.PI * 2);
-    ctx.fill();
-    // Tiny sword/stick
-    ctx.fillStyle = '#bdc3c7';
-    ctx.fillRect(x + 5, y - 12, 2, 12);
+    const renderSize = 220; // Slightly larger
+    if (this.sprite.complete && this.sprite.naturalWidth > 0) {
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 15;
+      ctx.shadowOffsetY = 10;
+      ctx.drawImage(
+        this.sprite,
+        sx, sy, sw, sh,
+        drawX - renderSize / 2,
+        drawY - renderSize / 2,
+        renderSize,
+        renderSize
+      );
+      ctx.restore();
+    }
   }
 
   drawUI(ctx, camera, player) {

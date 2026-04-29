@@ -6,70 +6,37 @@ export class Smithy {
     this.height = 60;
     this.color = '#7f8c8d'; // Greyish color for a smithy
     this.interactionRadius = 100; // How close player needs to be
+    
+    this.sprite = new Image();
+    this.sprite.src = 'assets/Building.png';
   }
 
   draw(ctx, camera, player = null) {
-    // Draw interaction radius for debugging or visual feedback
-    /*
-    ctx.beginPath();
-    ... (omitted debugging code if necessary, or just keep what's present)
-    */
-
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // Build 3D depth (bottom offset)
-    ctx.beginPath();
-    ctx.rect(drawX - this.width / 2, drawY - this.height / 2 + 20, this.width, this.height);
-    ctx.fillStyle = '#636e72'; // Darker grey for depth
-    ctx.fill();
-    ctx.closePath();
-
-    // Draw Smithy building (Anvil / Shop) main surface
-    ctx.beginPath();
-    ctx.rect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-
-    // Draw 3D shadow for anvil
-    ctx.fillStyle = '#1a252f';
-    ctx.fillRect(drawX - 20, drawY + 15, 40, 20);
-
-    // Draw an anvil-like shape inside
-    ctx.fillStyle = '#2c3e50';
-    ctx.fillRect(drawX - 20, drawY + 10, 40, 20);
-    ctx.fillRect(drawX - 10, drawY, 20, 10);
+    const sw = this.sprite.width / 4;
+    const sh = this.sprite.height / 2;
+    const sx = sw * 2;
+    const sy = 0;
     
-    ctx.closePath();
-    
-    // Draw Blacksmith NPC
-    const npcX = drawX + 35;
-    const npcY = drawY + this.height / 2 + 10;
-    this.drawNPC(ctx, npcX, npcY, '#34495e', '#e67e22');
-
-    if (player && this.isPlayerNear(player)) {
-      this.drawSpeechBubble(ctx, "Welcome to the Smithy! I forge weapons from iron.", npcX, npcY - 25);
+    const renderSize = 220; // Slightly larger
+    if (this.sprite.complete && this.sprite.naturalWidth > 0) {
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 15;
+      ctx.shadowOffsetY = 10;
+      ctx.drawImage(
+        this.sprite,
+        sx, sy, sw, sh,
+        drawX - renderSize / 2,
+        drawY - renderSize / 2,
+        renderSize,
+        renderSize
+      );
+      ctx.restore();
     }
-
-    // Draw text "Smithy" above it
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('Smithy', drawX, drawY - this.height / 2 - 10);
-  }
-
-  drawNPC(ctx, x, y, clothesColor, skinColor) {
-    // Body
-    ctx.fillStyle = clothesColor;
-    ctx.fillRect(x - 8, y - 10, 16, 20);
-    // Apron
-    ctx.fillStyle = '#2c3e50';
-    ctx.fillRect(x - 6, y - 5, 12, 15);
-    // Head
-    ctx.fillStyle = skinColor;
-    ctx.beginPath();
-    ctx.arc(x, y - 15, 8, 0, Math.PI * 2);
-    ctx.fill();
   }
 
   drawUI(ctx, camera, player) {

@@ -10,75 +10,9 @@ export class RenderSystem {
     
     this.bgCanvas = document.createElement('canvas');
     this.bgCtx = this.bgCanvas.getContext('2d');
-  }
 
-  generateBackgroundTexture(mine, forest, smithy) {
-    if (!this.width || !this.height) return;
-    this.bgCanvas.width = this.width;
-    this.bgCanvas.height = this.height;
-
-    // 1. Upper world (Battlefield) - Solid, serious tone
-    this.bgCtx.fillStyle = '#2c3e50';
-    this.bgCtx.fillRect(0, 0, this.width, UPPER_WORLD_HEIGHT);
-    
-    // Minimal texture for battlefield
-    this.bgCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-    for(let i=0; i<40; i++) {
-      let rx = Math.random() * this.width;
-      let ry = Math.random() * UPPER_WORLD_HEIGHT;
-      this.bgCtx.fillRect(rx, ry, 20, 2);
-    }
-
-    // 2. Lower world (Base grass) - Flat, modern green
-    this.bgCtx.fillStyle = '#27ae60'; 
-    this.bgCtx.fillRect(0, UPPER_WORLD_HEIGHT, this.width, this.height - UPPER_WORLD_HEIGHT);
-
-    // Minimalist grass
-    this.bgCtx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-    for(let i=0; i<150; i++) {
-      let rx = Math.random() * this.width;
-      let ry = UPPER_WORLD_HEIGHT + Math.random() * (this.height - UPPER_WORLD_HEIGHT);
-      this.bgCtx.fillRect(rx, ry, 2, 2);
-    }
-
-    const drawSubtleAura = (x, y, r, color) => {
-      let grad = this.bgCtx.createRadialGradient(x, y, 0, x, y, r);
-      grad.addColorStop(0, color);
-      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      this.bgCtx.fillStyle = grad;
-      this.bgCtx.beginPath();
-      this.bgCtx.arc(x, y, r, 0, Math.PI * 2);
-      this.bgCtx.fill();
-    };
-
-    drawSubtleAura(mine.x, mine.y, 250, 'rgba(0, 0, 0, 0.1)');
-    drawSubtleAura(forest.x, forest.y, 250, 'rgba(255, 255, 255, 0.05)');
-    drawSubtleAura(smithy.x, smithy.y, 200, 'rgba(0, 0, 0, 0.08)');
-  }
-
-  drawGrid(camera) {
-    this.ctx.strokeStyle = '#333';
-    this.ctx.lineWidth = 1;
-    const startX = Math.floor(camera.x / GRID_SIZE) * GRID_SIZE;
-    const startY = Math.max(UPPER_WORLD_HEIGHT, Math.floor(camera.y / GRID_SIZE) * GRID_SIZE);
-    const endX = camera.x + this.width;
-    const endY = camera.y + this.height;
-    
-    this.ctx.beginPath();
-    for (let x = startX; x <= endX; x += GRID_SIZE) {
-      this.ctx.moveTo(x - camera.x, UPPER_WORLD_HEIGHT);
-      this.ctx.lineTo(x - camera.x, this.height);
-    }
-    for (let y = startY; y <= endY; y += GRID_SIZE) {
-      if (y >= UPPER_WORLD_HEIGHT) {
-        this.ctx.moveTo(0, y - camera.y);
-        this.ctx.lineTo(this.width, y - camera.y);
-      }
-    }
-    this.ctx.stroke();
-    this.ctx.strokeStyle = '#555';
-    this.ctx.lineWidth = 5;
-    this.ctx.strokeRect(0, UPPER_WORLD_HEIGHT, this.width, this.height - UPPER_WORLD_HEIGHT);
+    this.backgroundImage = new Image();
+    this.backgroundImage.src = 'assets/Pocket-Islands-V1.0/tiles-islands-spritesheet-32x32.png';
   }
 
   render(gameState, camera, player, entities, hudOffset) {
@@ -88,15 +22,37 @@ export class RenderSystem {
     this.ctx.save();
     this.ctx.translate(0, hudOffset);
 
-    this.ctx.drawImage(this.bgCanvas, -camera.x, -camera.y);
-    this.ctx.strokeStyle = '#e74c3c';
-    this.ctx.lineWidth = 4;
-    this.ctx.beginPath();
-    this.ctx.moveTo(0, UPPER_WORLD_HEIGHT);
-    this.ctx.lineTo(this.width, UPPER_WORLD_HEIGHT);
-    this.ctx.stroke();
+    if (this.backgroundImage.complete && this.backgroundImage.naturalWidth > 0) {
+      const tileSize = 32;
+      // The plain grass tile in the spritesheet (approximate coordinate based on visual)
+      // First tile often has borders, middle tiles are plain
+      const sx = 32, sy = 0; // Second tile in first row
+      
+      const startX = Math.floor(camera.x / tileSize) * tileSize;
+      const startY = Math.floor(camera.y / tileSize) * tileSize;
 
-    this.drawGrid(camera);
+      for (let x = startX - tileSize; x < camera.x + this.width + tileSize; x += tileSize) {
+        for (let y = startY - tileSize; y < this.height + tileSize; y += tileSize) {
+          this.ctx.drawImage(
+            this.backgroundImage,
+            sx, sy, tileSize, tileSize,
+            x - camera.x, y - camera.y,
+            tileSize, tileSize
+          );
+        }
+      }
+
+      // Battlefield Darkening (Upper World)
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      this.ctx.fillRect(-camera.x, -camera.y, this.width + camera.x, UPPER_WORLD_HEIGHT);
+
+      // Draw the 3 lanes in battlefield
+      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      const lanesY = [40, 75, 110];
+      lanesY.forEach(ly => {
+          this.ctx.fillRect(-camera.x, ly - 10, this.width + camera.x, 20);
+      });
+    }
 
     const drawables = [smithy, mine, forest, armory, workshop, market, enemyBase, upperBase, player, ...soldiers, ...archers, ...enemies, ...mangonels, ...stones, ...arrows];
     drawables.sort((a, b) => {

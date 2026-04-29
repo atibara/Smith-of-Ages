@@ -6,71 +6,36 @@ export class Market {
     this.height = 60;
     this.interactionRadius = 100;
     this.color = '#e67e22'; // Orange/Brown for market
+    this.sprite = new Image();
+    this.sprite.src = 'assets/Building.png';
   }
 
   draw(ctx, camera, player = null) {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // Base/Floor
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(drawX - this.width / 2 - 10, drawY - this.height / 2 - 10, this.width + 20, this.height + 20);
-
-    // Main tent structure
-    ctx.fillStyle = '#d35400';
-    ctx.beginPath();
-    ctx.moveTo(drawX - this.width / 2, drawY + this.height / 2);
-    ctx.lineTo(drawX - this.width / 3, drawY - this.height / 2);
-    ctx.lineTo(drawX + this.width / 3, drawY - this.height / 2);
-    ctx.lineTo(drawX + this.width / 2, drawY + this.height / 2);
-    ctx.fill();
-
-    // Stripes on the tent
-    ctx.fillStyle = '#f39c12';
-    for (let i = -1; i <= 1; i++) {
-        ctx.fillRect(drawX + i * 20 - 5, drawY - this.height / 2, 10, this.height);
+    const sw = this.sprite.width / 4;
+    const sh = this.sprite.height / 2;
+    const sx = sw * 3;
+    const sy = 0;
+    
+    const renderSize = 220; // Slightly larger
+    if (this.sprite.complete && this.sprite.naturalWidth > 0) {
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetY = 8;
+      ctx.drawImage(
+        this.sprite,
+        sx, sy, sw, sh,
+        drawX - renderSize / 2,
+        drawY - renderSize / 2,
+        renderSize,
+        renderSize
+      );
+      ctx.restore();
     }
-
-    // Counter/Table
-    ctx.fillStyle = '#5d2906';
-    ctx.fillRect(drawX - this.width / 2 + 10, drawY + 10, this.width - 20, 20);
-
-    // Some goods on the counter
-    ctx.fillStyle = '#e74c3c'; // red fruit?
-    ctx.beginPath();
-    ctx.arc(drawX - 20, drawY + 15, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#2ecc71'; // green something?
-    ctx.beginPath();
-    ctx.arc(drawX - 5, drawY + 15, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#f1c40f'; // gold/yellow?
-    ctx.fillRect(drawX + 10, drawY + 12, 8, 6);
-
-    // NPC (Merchant)
-    this.drawNPC(ctx, drawX, drawY + 5, '#2980b9', '#f39c12');
-
-    // Label
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 18px Outfit';
-    ctx.textAlign = 'center';
-    ctx.fillText('MARKET', drawX, drawY - this.height / 2 - 20);
-  }
-
-  drawNPC(ctx, x, y, clothesColor, skinColor) {
-    // Body
-    ctx.fillStyle = clothesColor;
-    ctx.fillRect(x - 8, y - 10, 16, 20);
-    // Head
-    ctx.fillStyle = skinColor;
-    ctx.beginPath();
-    ctx.arc(x, y - 15, 8, 0, Math.PI * 2);
-    ctx.fill();
-    // Turban/Hat
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.ellipse(x, y - 18, 10, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
   }
 
   drawUI(ctx, camera, player) {

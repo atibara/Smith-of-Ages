@@ -6,70 +6,36 @@ export class SiegeWorkshop {
     this.height = 90;
     this.color = '#5d4037'; // Heavy dark wood
     this.interactionRadius = 120;
+    this.sprite = new Image();
+    this.sprite.src = 'assets/Building.png';
   }
 
   draw(ctx, camera, player = null) {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // 3D Depth
-    ctx.fillStyle = '#3e2723'; // Dark background depth layer
-    ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2 + 20, this.width, this.height);
-
-    // Building Base
-    ctx.fillStyle = this.color;
-    ctx.fillRect(drawX - this.width / 2, drawY - this.height / 2, this.width, this.height);
+    const sw = this.sprite.width / 4;
+    const sh = this.sprite.height / 2;
+    const sx = sw;
+    const sy = sh;
     
-    // Roof (Heavy beams) depth
-    ctx.fillStyle = '#1f1311';
-    ctx.beginPath();
-    ctx.moveTo(drawX - this.width / 2 - 10, drawY - this.height / 2 + 5);
-    ctx.lineTo(drawX, drawY - this.height / 2 - 25);
-    ctx.lineTo(drawX + this.width / 2 + 10, drawY - this.height / 2 + 5);
-    ctx.fill();
-    ctx.closePath();
-
-    // Roof (Heavy beams)
-    ctx.fillStyle = '#3e2723';
-    ctx.beginPath();
-    ctx.moveTo(drawX - this.width / 2 - 10, drawY - this.height / 2);
-    ctx.lineTo(drawX, drawY - this.height / 2 - 30);
-    ctx.lineTo(drawX + this.width / 2 + 10, drawY - this.height / 2);
-    ctx.fill();
-    ctx.closePath();
-
-    // Wheels/Catapult parts visual
-    ctx.fillStyle = '#2c3e50';
-    ctx.beginPath();
-    ctx.arc(drawX - 30, drawY + 10, 15, 0, Math.PI * 2);
-    ctx.arc(drawX + 30, drawY + 10, 15, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Draw Siege Engineer NPC
-    const npcX = drawX + 45;
-    const npcY = drawY + this.height / 2 + 10;
-    this.drawNPC(ctx, npcX, npcY, '#8e44ad', '#e67e22'); // purple-ish clothes
-
-    // Label
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 16px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('Siege Workshop', drawX, drawY - this.height / 2 - 40);
-  }
-
-  drawNPC(ctx, x, y, clothesColor, skinColor) {
-    // Body
-    ctx.fillStyle = clothesColor;
-    ctx.fillRect(x - 8, y - 10, 16, 20);
-    // Head
-    ctx.fillStyle = skinColor;
-    ctx.beginPath();
-    ctx.arc(x, y - 15, 8, 0, Math.PI * 2);
-    ctx.fill();
-    // Tiny wrench/hammer
-    ctx.fillStyle = '#7f8c8d';
-    ctx.fillRect(x + 5, y - 12, 4, 10);
-    ctx.fillRect(x + 3, y - 12, 8, 3);
+    const renderSize = 240; // Slightly larger
+    if (this.sprite.complete && this.sprite.naturalWidth > 0) {
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 12;
+      ctx.drawImage(
+        this.sprite,
+        sx, sy, sw, sh,
+        drawX - renderSize / 2,
+        drawY - renderSize / 2,
+        renderSize,
+        renderSize
+      );
+      ctx.restore();
+    }
   }
 
   drawUI(ctx, camera, player) {

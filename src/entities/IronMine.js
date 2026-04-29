@@ -6,70 +6,36 @@ export class IronMine {
     this.height = 90;
     this.color = '#7f8c8d'; // Rock color
     this.interactionRadius = 120;
+    this.sprite = new Image();
+    this.sprite.src = 'assets/Building.png';
   }
 
   draw(ctx, camera, player = null) {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
 
-    // 3D Depth
-    ctx.beginPath();
-    ctx.moveTo(drawX - this.width / 2, drawY + this.height / 2 + 10);
-    ctx.lineTo(drawX - this.width / 4, drawY - this.height / 2 + 10);
-    ctx.lineTo(drawX + this.width / 4, drawY - this.height / 4 + 10);
-    ctx.lineTo(drawX + this.width / 2, drawY + this.height / 2 + 10);
-    ctx.closePath();
-    ctx.fillStyle = '#616a6b'; // Darker grey for depth
-    ctx.fill();
-
-    // Draw mountain/rock shape main face
-    ctx.beginPath();
-    ctx.moveTo(drawX - this.width / 2, drawY + this.height / 2);
-    ctx.lineTo(drawX - this.width / 4, drawY - this.height / 2);
-    ctx.lineTo(drawX + this.width / 4, drawY - this.height / 4);
-    ctx.lineTo(drawX + this.width / 2, drawY + this.height / 2);
-    ctx.closePath();
+    const sw = this.sprite.width / 4;
+    const sh = this.sprite.height / 2;
+    const sx = sw;
+    const sy = 0;
     
-    ctx.fillStyle = this.color;
-    ctx.fill();
-
-    // Draw little iron ores embedded
-    ctx.fillStyle = '#34495e';
-    ctx.fillRect(drawX - 20, drawY, 10, 10);
-    ctx.fillRect(drawX + 10, drawY + 20, 12, 12);
-
-    // Draw Miner NPC
-    const npcX = drawX + 35;
-    const npcY = drawY + this.height / 2 + 10;
-    this.drawNPC(ctx, npcX, npcY, '#95a5a6', '#f39c12'); // grey uniform, yellow hard hat
-
-    // Label
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('Iron Mine', drawX, drawY - this.height / 2 - 15);
-  }
-
-  drawNPC(ctx, x, y, clothesColor, hatColor) {
-    // Body
-    ctx.fillStyle = clothesColor;
-    ctx.fillRect(x - 8, y - 10, 16, 20);
-    // Head (skin)
-    ctx.fillStyle = '#e67e22';
-    ctx.beginPath();
-    ctx.arc(x, y - 15, 8, 0, Math.PI * 2);
-    ctx.fill();
-    // Hat
-    ctx.fillStyle = hatColor;
-    ctx.beginPath();
-    ctx.arc(x, y - 16, 8, Math.PI, 0);
-    ctx.fill();
-    
-    // Tiny pickaxe
-    ctx.fillStyle = '#7f8c8d';
-    ctx.fillRect(x + 3, y - 12, 10, 3);
-    ctx.fillStyle = '#5d2906';
-    ctx.fillRect(x + 7, y - 16, 2, 16);
+    const renderSize = 220;
+    if (this.sprite.complete && this.sprite.naturalWidth > 0) {
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 15;
+      ctx.shadowOffsetY = 10;
+      ctx.drawImage(
+        this.sprite,
+        sx, sy, sw, sh,
+        drawX - renderSize / 2,
+        drawY - renderSize / 2,
+        renderSize,
+        renderSize
+      );
+      ctx.restore();
+    }
   }
 
   drawUI(ctx, camera, player) {
