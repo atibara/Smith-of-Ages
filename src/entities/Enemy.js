@@ -8,7 +8,7 @@ export class Enemy {
     this.y = yOffset;
     this.lane = lane; // 0, 1, 2
     this.color = '#e74c3c'; // Red theme for enemies
-    this.speed = 0.35;
+    this.speed = 0.2;
     
     // Health and Combat
     this.health = 80;

@@ -332,8 +332,8 @@ function restartGame() {
   player.targetX = player.x;
   player.targetY = player.y;
   player.inventory = [];
-  player.speedBase = 4.5;
-  player.speed = 4.5;
+  player.speedBase = 3.0;
+  player.speed = 3.0;
   player.isMoving = false;
   player.path = [];
   

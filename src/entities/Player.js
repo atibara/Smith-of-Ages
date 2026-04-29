@@ -8,8 +8,8 @@ export class Player {
     this.height = 100;
     this.radius = 20;
     this.color = '#f39c12';
-    this.speedBase = 4.5;
-    this.speed = 4.5;
+    this.speedBase = 3.0;
+    this.speed = 3.0;
     
     this.targetX = x;
     this.targetY = y;

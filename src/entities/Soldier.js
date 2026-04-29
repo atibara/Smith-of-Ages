@@ -8,7 +8,7 @@ export class Soldier {
     this.y = yOffset; // Vertical center of the upper world path
     this.lane = lane; // 0 (top), 1 (middle), 2 (bottom)
     this.color = '#3498db'; // Look like blue soldiers
-    this.speed = 0.4;
+    this.speed = 0.25;
     
     // Health and Combat
     this.health = 100;

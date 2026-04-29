@@ -14,7 +14,7 @@ export class EnemyArcher {
       this.processedSprite = this.removeWhiteBackground(this.sprite);
     };
     this.sprite.src = 'assets/Tiny RPG Character Asset Pack v1.03 -Free Soldier&Orc/Characters(100x100)/Orc/Orc with shadows/Orc.png';
-    this.speed = 0.4;
+    this.speed = 0.25;
     this.health = 50;
     this.maxHealth = 50;
     this.attackDamage = 8;
