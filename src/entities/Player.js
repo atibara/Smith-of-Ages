@@ -46,23 +46,18 @@ export class Player {
 
   setTarget(x, y, obstacles = [], worldBounds = null) {
     if (worldBounds) {
-      const paddingX = 5;  // Shrunk bounding box buffer
-      const paddingY = 0;  // Zero vertical buffer for feet
-      const feetY = this.y + 40; // Player feet are roughly 40px below center
+      // Player hitbox size for pathfinding
+      const paddingX = 20; 
+      const paddingY = 15; 
+      const feetY = this.y + 40; 
       
-      // Temporarily shrink obstacle bounding boxes for pathfinding
-      const shrunkObstacles = obstacles.map(obs => ({
-          x: obs.x,
-          y: obs.y,
-          width: Math.max(0, obs.width - 30),
-          height: Math.max(0, obs.height - 30)
-      }));
-
-      this.path = Pathfinder.findPath(this.x, feetY, x, y, shrunkObstacles, worldBounds, paddingX, paddingY);
-      if (this.path.length > 0) {
+      // We pass the exact obstacles; Pathfinder uses padding to ensure the player doesn't clip.
+      this.path = Pathfinder.findPath(this.x, feetY, x, y, obstacles, worldBounds, paddingX, paddingY);
+      
+      if (this.path && this.path.length > 0) {
          this.isMoving = true;
          this.targetX = this.path[0].x;
-         this.targetY = this.path[0].y; // targetY now represents feet destination
+         this.targetY = this.path[0].y; 
       } else {
          this.isMoving = false;
       }
@@ -80,60 +75,31 @@ export class Player {
       const dy = this.targetY - feetY;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      let nextX = this.x;
-      let nextFeetY = feetY;
-
       if (distance < this.speed) {
-        nextX = this.targetX;
-        nextFeetY = this.targetY;
+        // Snap to target waypoint
+        this.x = this.targetX;
+        this.y = this.targetY - 40;
         
-        if (this.path.length > 0) {
-            this.path.shift();
+        if (this.path && this.path.length > 0) {
+            this.path.shift(); // Remove the reached waypoint
             if (this.path.length > 0) {
+                // Proceed to next waypoint
                 this.targetX = this.path[0].x;
                 this.targetY = this.path[0].y;
             } else {
-                this.isMoving = false;
+                this.isMoving = false; // Reached final destination
             }
         } else {
             this.isMoving = false;
         }
       } else {
-        nextX += (dx / distance) * this.speed;
-        nextFeetY += (dy / distance) * this.speed;
-      }
-
-      // Check collision using feet and shrunk obstacle boxes
-      let collides = false;
-      for (const obs of obstacles) {
-        // Shrink building hitboxes by 15px per side
-        const obsLeft = obs.x - obs.width / 2 + 15;
-        const obsRight = obs.x + obs.width / 2 - 15;
-        const obsTop = obs.y - obs.height / 2 + 15;
-        const obsBottom = obs.y + obs.height / 2 - 15;
-
-        const pLeft = nextX - 20;
-        const pRight = nextX + 20;
-        const pTop = nextFeetY - 15; 
-        const pBottom = nextFeetY + 15;
-
-        if (pRight > obsLeft && pLeft < obsRight && pBottom > obsTop && pTop < obsBottom) {
-           collides = true;
-           break;
-        }
-      }
-
-      if (collides) {
-        this.isMoving = false;
-        this.path = [];
-        this.targetX = this.x;
-        this.targetY = feetY;
-      } else {
-        this.x = nextX;
-        this.y = nextFeetY - 40;
+        // Move smoothly towards current waypoint
+        this.x += (dx / distance) * this.speed;
+        this.y += (dy / distance) * this.speed;
       }
     }
 
+    // Keep within world boundaries
     if (worldBounds) {
       this.x = Math.max(worldBounds.minX + 20, Math.min(this.x, worldBounds.maxX - 20));
       let fY = this.y + 40;

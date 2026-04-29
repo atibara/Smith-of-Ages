@@ -356,7 +356,34 @@ canvas.addEventListener('mousedown', (e) => {
   const worldX = screenX + camera.x;
   const worldY = screenY + camera.y - HUD_OFFSET; // Account for HUD translation
   const obstacles = [smithy, mine, forest, armory, workshop, market];
-  player.setTarget(worldX, worldY, obstacles, { minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height - HUD_OFFSET - 20 });
+  
+  let targetX = worldX;
+  let targetY = worldY;
+
+  // Smart interaction routing: if clicked on a building, walk to its NPC/door
+  for (const obs of obstacles) {
+     const obsLeft = obs.x - obs.width / 2;
+     const obsRight = obs.x + obs.width / 2;
+     // Expand top boundary to catch clicks on 3D roofs
+     const obsTop = obs.y - obs.height / 2 - 40; 
+     const obsBottom = obs.y + obs.height / 2 + 10;
+     
+     if (worldX >= obsLeft && worldX <= obsRight && worldY >= obsTop && worldY <= obsBottom) {
+         if (obs === market) {
+             targetX = obs.x; // Merchant is perfectly centered
+         } else if (obs === workshop) {
+             targetX = obs.x + 45; // Engineer is offset right
+         } else if (obs === forest) {
+             targetX = obs.x + 40; // Lumberjack is offset right
+         } else {
+             targetX = obs.x + 35; // Smithy, Armory, Mine NPCs
+         }
+         targetY = obs.y + obs.height / 2 + 35; // Safely below the building's collision box
+         break;
+     }
+  }
+
+  player.setTarget(targetX, targetY, obstacles, { minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height - HUD_OFFSET - 20 });
 });
 
 function drawGrid() {
