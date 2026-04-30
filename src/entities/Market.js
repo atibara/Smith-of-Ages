@@ -2,9 +2,9 @@ export class Market {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 120;
-    this.height = 60;
-    this.interactionRadius = 100;
+    this.width = 160; // Hitbox width (matches visual size)
+    this.height = 160; // Hitbox height (matches visual size)
+    this.interactionRadius = 150;
     this.color = '#e67e22'; // Orange/Brown for market
     this.sprite = new Image();
     this.sprite.src = 'assets/Building.png';

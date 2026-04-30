@@ -2,10 +2,10 @@ export class Smithy {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 120;
-    this.height = 60;
+    this.width = 160; // Hitbox width (matches visual size)
+    this.height = 160; // Hitbox height (matches visual size)
     this.color = '#7f8c8d'; // Greyish color for a smithy
-    this.interactionRadius = 100; // How close player needs to be
+    this.interactionRadius = 150; // How close player needs to be
     
     this.sprite = new Image();
     this.sprite.src = 'assets/Building.png';

@@ -21,9 +21,10 @@ export class Pathfinder {
       
       // 2. Check obstacles (with padding so player doesn't clip)
       for(const obs of obstacles) {
+         // Binaların tamamını (tüm texture alanını) hitbox olarak kabul et
          const obsLeft = obs.x - obs.width / 2 - paddingX;
          const obsRight = obs.x + obs.width / 2 + paddingX;
-         const obsTop = obs.y - obs.height / 2 - paddingY;
+         const obsTop = obs.y - obs.height / 2 - paddingY; 
          const obsBottom = obs.y + obs.height / 2 + paddingY;
          
          if (wx > obsLeft && wx < obsRight && wy > obsTop && wy < obsBottom) {

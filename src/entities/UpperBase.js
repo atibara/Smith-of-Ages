@@ -2,8 +2,8 @@ export class UpperBase {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 60;
-    this.height = 70;
+    this.width = 160; // Hitbox width (matches visual size)
+    this.height = 160; // Hitbox height (matches visual size)
     this.health = 1000;
     this.maxHealth = 1000;
     this.color = '#34495e';

@@ -2,10 +2,10 @@ export class SiegeWorkshop {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 120;
-    this.height = 90;
+    this.width = 180; // Hitbox width (matches visual size)
+    this.height = 180; // Hitbox height (matches visual size)
     this.color = '#5d4037'; // Heavy dark wood
-    this.interactionRadius = 120;
+    this.interactionRadius = 160;
     this.sprite = new Image();
     this.sprite.src = 'assets/Building.png';
   }

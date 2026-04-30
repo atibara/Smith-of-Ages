@@ -2,10 +2,10 @@ export class IronMine {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 120;
-    this.height = 90;
+    this.width = 160; // Hitbox width (matches visual size)
+    this.height = 160; // Hitbox height (matches visual size)
     this.color = '#7f8c8d'; // Rock color
-    this.interactionRadius = 120;
+    this.interactionRadius = 150;
     this.sprite = new Image();
     this.sprite.src = 'assets/Building.png';
   }

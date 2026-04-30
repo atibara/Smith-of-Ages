@@ -2,10 +2,10 @@ export class Armory {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 120;
-    this.height = 60;
+    this.width = 160; // Hitbox width (matches visual size)
+    this.height = 160; // Hitbox height (matches visual size)
     this.color = '#c0392b'; // Dark red theme
-    this.interactionRadius = 100;
+    this.interactionRadius = 150;
     this.sprite = new Image();
     this.sprite.src = 'assets/Building.png';
   }

@@ -200,7 +200,7 @@ inputSystem.init(
 );
 
 inputSystem.onMove = (worldX, worldY) => {
-  const obstacles = [entities.smithy, entities.mine, entities.forest, entities.armory, entities.workshop, entities.market];
+  const obstacles = [entities.smithy, entities.mine, entities.forest, entities.armory, entities.workshop, entities.market, entities.upperBase, entities.enemyBase];
   let targetX = worldX;
   let targetY = worldY;
 
@@ -208,14 +208,11 @@ inputSystem.onMove = (worldX, worldY) => {
     const obsLeft = obs.x - obs.width / 2;
     const obsRight = obs.x + obs.width / 2;
     const obsTop = obs.y - obs.height / 2 - 40; 
-    const obsBottom = obs.y + obs.height / 2 + 10;
+    const obsBottom = obs.y + obs.height / 2 + 20;
     
     if (worldX >= obsLeft && worldX <= obsRight && worldY >= obsTop && worldY <= obsBottom) {
-        if (obs === entities.market) targetX = obs.x;
-        else if (obs === entities.workshop) targetX = obs.x + 45;
-        else if (obs === entities.forest) targetX = obs.x + 40;
-        else targetX = obs.x + 35;
-        targetY = obs.y + obs.height / 2 + 35;
+        targetX = obs.x;
+        targetY = obs.y + obs.height / 2 + 45; // Binanın güvenli ön bölgesi
         break;
     }
   }
@@ -273,7 +270,7 @@ if (backSettingsBtn) {
 function update() {
   if (gameState !== 'PLAYING' && gameState !== 'SHOPPING') return;
 
-  const obstacles = [entities.smithy, entities.mine, entities.forest, entities.armory, entities.workshop, entities.market];
+  const obstacles = [entities.smithy, entities.mine, entities.forest, entities.armory, entities.workshop, entities.market, entities.upperBase, entities.enemyBase];
   player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height - HUD_OFFSET - 20 }, obstacles);
   
   const isTowing = entities.mangonels.some(m => m.state === 'FOLLOWING');
