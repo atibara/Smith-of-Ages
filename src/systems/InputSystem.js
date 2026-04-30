@@ -48,6 +48,29 @@ export class InputSystem {
 
       if (this.onMove) this.onMove(worldX, worldY);
     });
+
+    // --- VIEWPORT & GESTURE LOCKDOWN ---
+    // Deeply debugged fix for browser auto-refresh and pull-to-refresh
+    
+    // 1. Prevent scroll wheel (blocks trackpad swipe/scroll-to-refresh)
+    window.addEventListener('wheel', (e) => {
+      e.preventDefault();
+    }, { passive: false });
+
+    // 2. Prevent touch gestures (blocks mobile pull-to-refresh)
+    window.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+    }, { passive: false });
+
+    // 3. Prevent right-click context menu
+    window.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
+    // 4. Prevent pointer-based scroll actions on the canvas
+    this.canvas.addEventListener('pointermove', (e) => {
+      e.preventDefault();
+    }, { passive: false });
   }
 
   setGameState(state) {
