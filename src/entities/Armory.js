@@ -46,39 +46,61 @@ export class Armory {
     }
   }
 
-  drawUI(ctx, camera, player) {
-    if (player && this.isPlayerNear(player)) {
-      const drawX = this.x - camera.x;
-      const drawY = this.y - camera.y;
-      
-      // Modern Interaction Prompt
-      const promptY = drawY - this.height / 2 - 20;
-      
-      ctx.save();
-      // Background pill
-      ctx.fillStyle = 'rgba(20, 25, 30, 0.85)';
-      ctx.beginPath();
-      ctx.roundRect(drawX - 55, promptY - 15, 110, 30, 15);
-      ctx.fill();
-      
-      // Border
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+  drawUI(ctx, camera, player, entities, economySystem) {
+    const isNear = player && this.isPlayerNear(player);
+    const drawX = this.x - camera.x;
+    const drawY = this.y - camera.y;
+    
+    const promptY = drawY - this.height / 2 - 20;
+    
+    let currentTroops = 0;
+    let maxTroops = 3;
+    if (entities && economySystem) {
+      currentTroops = entities.soldiers.length + entities.archers.length + entities.playerSpawnQueue.length;
+      maxTroops = economySystem.getMaxTroops();
+    }
 
-      // Key icon (Space)
-      ctx.fillStyle = '#f39c12';
+    const limitReached = currentTroops >= maxTroops;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(20, 25, 30, 0.85)';
+    ctx.beginPath();
+    
+    const boxWidth = isNear && !limitReached ? 150 : (limitReached ? 170 : 100);
+    const boxOffset = boxWidth / 2;
+    ctx.roundRect(drawX - boxOffset, promptY - 15, boxWidth, 30, 15);
+    ctx.fill();
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    if (limitReached) {
+      ctx.fillStyle = '#e74c3c'; // Red
       ctx.font = 'bold 12px Outfit, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('[SPACE]', drawX - 20, promptY + 1);
-      
-      // Text
-      ctx.fillStyle = '#ecf0f1';
-      ctx.font = '12px Outfit, sans-serif';
-      ctx.fillText('Interact', drawX + 25, promptY + 1);
-      ctx.restore();
+      ctx.fillText(`Deploy (${currentTroops}/${maxTroops}) - Limit`, drawX, promptY + 1);
+    } else {
+      if (isNear) {
+        ctx.fillStyle = '#f39c12';
+        ctx.font = 'bold 12px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('[SPACE]', drawX - 35, promptY + 1);
+        
+        ctx.fillStyle = '#ecf0f1';
+        ctx.font = '12px Outfit, sans-serif';
+        ctx.fillText(`Deploy (${currentTroops}/${maxTroops})`, drawX + 25, promptY + 1);
+      } else {
+        ctx.fillStyle = '#ecf0f1';
+        ctx.font = '12px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`Deploy (${currentTroops}/${maxTroops})`, drawX, promptY + 1);
+      }
     }
+    ctx.restore();
   }
 
   isPlayerNear(player) {

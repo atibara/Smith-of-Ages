@@ -19,6 +19,13 @@ export class EconomySystem {
     }
   }
 
+  getMaxTroops() {
+    if (this.playerLevel < 5) return 3;
+    if (this.playerLevel < 10) return 5;
+    if (this.playerLevel < 15) return 7;
+    return 10;
+  }
+
   buyUpgrade(action, player, upperBase) {
     const costs = {
       'buy-speed': 50, // Example costs if not defined in HTML

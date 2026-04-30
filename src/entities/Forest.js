@@ -5,8 +5,14 @@ export class Forest {
     this.width = 160; // Hitbox width (matches visual size)
     this.height = 160; // Hitbox height (matches visual size)
     this.interactionRadius = 150;
+    this.lastGatherTime = 0;
+    this.cooldown = 5000; // 5 seconds
     this.sprite = new Image();
     this.sprite.src = 'assets/Building.png';
+  }
+
+  canGather() {
+    return Date.now() - this.lastGatherTime >= this.cooldown;
   }
 
   draw(ctx, camera, player = null) {
@@ -50,38 +56,54 @@ export class Forest {
   }
 
   drawUI(ctx, camera, player) {
-    if (player && this.isPlayerNear(player)) {
-      const drawX = this.x - camera.x;
-      const drawY = this.y - camera.y;
-      
-      // Modern Interaction Prompt
-      const promptY = drawY - this.height / 2 - 10;
-      
-      ctx.save();
-      // Background pill
-      ctx.fillStyle = 'rgba(20, 25, 30, 0.85)';
-      ctx.beginPath();
-      ctx.roundRect(drawX - 55, promptY - 15, 110, 30, 15);
-      ctx.fill();
-      
-      // Border
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+    const isNear = player && this.isPlayerNear(player);
+    const drawX = this.x - camera.x;
+    const drawY = this.y - camera.y;
+    
+    const promptY = drawY - this.height / 2 - 10;
+    const timeSinceGather = Date.now() - this.lastGatherTime;
+    const isReady = timeSinceGather >= this.cooldown;
+    
+    ctx.save();
+    ctx.fillStyle = 'rgba(20, 25, 30, 0.85)';
+    ctx.beginPath();
+    
+    const boxWidth = isNear && isReady ? 130 : 90;
+    const boxOffset = boxWidth / 2;
+    ctx.roundRect(drawX - boxOffset, promptY - 15, boxWidth, 30, 15);
+    ctx.fill();
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
-      // Key icon (Space)
-      ctx.fillStyle = '#f39c12';
+    if (isReady) {
+      if (isNear) {
+        ctx.fillStyle = '#f39c12';
+        ctx.font = 'bold 12px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('[SPACE]', drawX - 30, promptY + 1);
+        
+        ctx.fillStyle = '#ecf0f1';
+        ctx.font = '12px Outfit, sans-serif';
+        ctx.fillText('Gather Wood', drawX + 25, promptY + 1);
+      } else {
+        ctx.fillStyle = '#ecf0f1';
+        ctx.font = '12px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Gather Wood', drawX, promptY + 1);
+      }
+    } else {
+      const secondsLeft = Math.ceil((this.cooldown - timeSinceGather) / 1000);
+      ctx.fillStyle = '#e74c3c'; // Red for wait
       ctx.font = 'bold 12px Outfit, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('[SPACE]', drawX - 20, promptY + 1);
-      
-      // Text
-      ctx.fillStyle = '#ecf0f1';
-      ctx.font = '12px Outfit, sans-serif';
-      ctx.fillText('Interact', drawX + 25, promptY + 1);
-      ctx.restore();
+      ctx.fillText(`Wait ${secondsLeft}s`, drawX, promptY + 1);
     }
+    ctx.restore();
   }
 
   isPlayerNear(player) {

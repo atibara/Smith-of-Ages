@@ -124,14 +124,27 @@ inputSystem.init(
     }
 
     if (mine.isPlayerNear(player)) {
-      if (player.inventory.length < player.maxInventory) player.inventory.push('iron');
+      if (player.inventory.length < player.maxInventory && mine.canGather()) {
+          player.inventory.push('iron');
+          mine.lastGatherTime = Date.now();
+      }
     } else if (forest.isPlayerNear(player)) {
-      if (player.inventory.length < player.maxInventory) player.inventory.push('wood');
+      if (player.inventory.length < player.maxInventory && forest.canGather()) {
+          player.inventory.push('wood');
+          forest.lastGatherTime = Date.now();
+      }
     } else if (smithy.isPlayerNear(player)) {
-      const ironIndex = player.inventory.indexOf('iron');
-      const woodIndex = player.inventory.indexOf('wood');
-      if (ironIndex !== -1) player.inventory[ironIndex] = 'sword';
-      else if (woodIndex !== -1) player.inventory[woodIndex] = 'bow';
+      if (smithy.canCraft()) {
+        const ironIndex = player.inventory.indexOf('iron');
+        const woodIndex = player.inventory.indexOf('wood');
+        if (ironIndex !== -1) {
+          player.inventory[ironIndex] = 'sword';
+          smithy.doCraft();
+        } else if (woodIndex !== -1) {
+          player.inventory[woodIndex] = 'bow';
+          smithy.doCraft();
+        }
+      }
     } else if (workshop.isPlayerNear(player)) {
       if (mangonels.length > 0) return;
       const woodCount = player.inventory.filter(i => i === 'wood').length;
@@ -159,7 +172,11 @@ inputSystem.init(
 
       const swordIndex = player.inventory.indexOf('sword');
       const bowIndex = player.inventory.indexOf('bow');
-      if (swordIndex !== -1 || bowIndex !== -1) {
+      
+      const currentTroops = entities.soldiers.length + entities.archers.length + entities.playerSpawnQueue.length;
+      const maxTroops = economySystem.getMaxTroops();
+
+      if ((swordIndex !== -1 || bowIndex !== -1) && currentTroops < maxTroops) {
         let spawnLane = (combatSystem.nextSoldierLane || 0);
         if (swordIndex !== -1) {
           player.inventory.splice(swordIndex, 1);
@@ -293,7 +310,7 @@ function update() {
 function gameLoop() {
   loopRunning = true;
   update();
-  renderSystem.render(gameState, camera, player, entities, HUD_OFFSET);
+  renderSystem.render(gameState, camera, player, entities, HUD_OFFSET, economySystem);
 
   if (gameState !== 'GAMEOVER') {
     requestAnimationFrame(gameLoop);

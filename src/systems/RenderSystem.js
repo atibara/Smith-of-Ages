@@ -15,7 +15,7 @@ export class RenderSystem {
     this.backgroundImage.src = 'assets/Pocket-Islands-V1.0/tiles-islands-spritesheet-32x32.png';
   }
 
-  render(gameState, camera, player, entities, hudOffset) {
+  render(gameState, camera, player, entities, hudOffset, economySystem) {
     const { smithy, mine, forest, armory, workshop, market, enemyBase, upperBase, soldiers, archers, enemies, mangonels, stones, arrows, xpOrbs, damageEffects } = entities;
 
     this.ctx.clearRect(0, 0, this.width, this.height);
@@ -68,7 +68,7 @@ export class RenderSystem {
     });
 
     [mine, forest, market, workshop, smithy, armory].forEach(b => {
-        if (typeof b.drawUI === 'function') b.drawUI(this.ctx, camera, player);
+        if (typeof b.drawUI === 'function') b.drawUI(this.ctx, camera, player, entities, economySystem);
     });
     
     xpOrbs.forEach(orb => orb.draw(this.ctx));
