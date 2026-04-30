@@ -29,6 +29,7 @@ export class InputSystem {
       if (this.gameState !== 'PLAYING') return;
 
       if (e.code === 'Space') {
+        e.preventDefault();
         onInteraction();
       }
     });
