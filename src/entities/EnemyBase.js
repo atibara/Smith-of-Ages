@@ -2,15 +2,15 @@ export class EnemyBase {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 160;
-    this.height = 180;
+    this.width = 60;
+    this.height = 70;
     this.health = 1000;
     this.maxHealth = 1000;
     this.color = '#c0392b';
     this.sprite = new Image();
     this.sprite.src = 'assets/Building.png';
   }
-  
+
   takeDamage(amount, effectsArray) {
     this.health = Math.max(0, this.health - amount);
     if (effectsArray) {
@@ -26,8 +26,8 @@ export class EnemyBase {
     const sh = this.sprite.height / 2;
     const sx = sw * 3;
     const sy = sh;
-    
-    const renderSize = 300; // Even bigger for the enemy fortress
+
+    const renderSize = 220; // Reduced size for the enemy fortress
     if (this.sprite.complete && this.sprite.naturalWidth > 0) {
       ctx.save();
       ctx.imageSmoothingEnabled = false;
@@ -64,15 +64,15 @@ export class EnemyBase {
     // Foreground (Red Gradient)
     const healthPercent = Math.max(0, this.health / this.maxHealth);
     if (healthPercent > 0) {
-        const grad = ctx.createLinearGradient(barX, 0, barX + barWidth * healthPercent, 0);
-        grad.addColorStop(0, '#ff4d4d');
-        grad.addColorStop(1, '#990000');
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.roundRect(barX, barY, barWidth * healthPercent, barHeight, 4);
-        ctx.fill();
+      const grad = ctx.createLinearGradient(barX, 0, barX + barWidth * healthPercent, 0);
+      grad.addColorStop(0, '#ff4d4d');
+      grad.addColorStop(1, '#990000');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(barX, barY, barWidth * healthPercent, barHeight, 4);
+      ctx.fill();
     }
-    
+
     ctx.shadowBlur = 0; // Reset shadow
 
     // Text label

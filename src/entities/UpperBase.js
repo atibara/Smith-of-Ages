@@ -2,15 +2,15 @@ export class UpperBase {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.width = 160;
-    this.height = 180;
+    this.width = 60;
+    this.height = 70;
     this.health = 1000;
     this.maxHealth = 1000;
     this.color = '#34495e';
     this.sprite = new Image();
     this.sprite.src = 'assets/Building.png';
   }
-  
+
   takeDamage(amount, effectsArray) {
     this.health = Math.max(0, this.health - amount);
     if (effectsArray) {
@@ -26,8 +26,8 @@ export class UpperBase {
     const sh = this.sprite.height / 2;
     const sx = sw * 2;
     const sy = sh;
-    
-    const renderSize = 280;
+
+    const renderSize = 200;
     if (this.sprite.complete && this.sprite.naturalWidth > 0) {
       ctx.save();
       ctx.imageSmoothingEnabled = false;
@@ -63,15 +63,15 @@ export class UpperBase {
     // Foreground (Blue/Green Gradient)
     const healthPercent = Math.max(0, this.health / this.maxHealth);
     if (healthPercent > 0) {
-        const grad = ctx.createLinearGradient(barX, 0, barX + barWidth * healthPercent, 0);
-        grad.addColorStop(0, '#2ecc71');
-        grad.addColorStop(1, '#27ae60');
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.roundRect(barX, barY, barWidth * healthPercent, barHeight, 4);
-        ctx.fill();
+      const grad = ctx.createLinearGradient(barX, 0, barX + barWidth * healthPercent, 0);
+      grad.addColorStop(0, '#2ecc71');
+      grad.addColorStop(1, '#27ae60');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(barX, barY, barWidth * healthPercent, barHeight, 4);
+      ctx.fill();
     }
-    
+
     ctx.shadowBlur = 0; // Reset shadow
 
     // Text label
