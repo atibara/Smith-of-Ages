@@ -58,13 +58,6 @@ export class Smithy {
         renderSize
       );
       
-      // Building Name
-      ctx.shadowBlur = 4;
-      ctx.shadowColor = 'rgba(0,0,0,0.8)';
-      ctx.fillStyle = '#f1c40f';
-      ctx.font = 'bold 14px Outfit, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Smithy', drawX, drawY - this.height / 2 - 30);
       ctx.restore();
     }
   }
@@ -74,7 +67,7 @@ export class Smithy {
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
     
-    const promptY = drawY - this.height / 2 - 20;
+    const promptY = drawY - this.height / 2 - 45;
 
     // Check if we recovered from cooldown silently
     if (this.craftCount >= this.maxCrafts && Date.now() - this.lastCooldownStart >= this.cooldown) {
@@ -84,45 +77,61 @@ export class Smithy {
     const isReady = this.canCraft();
 
     ctx.save();
-    ctx.fillStyle = 'rgba(20, 25, 30, 0.85)';
-    ctx.beginPath();
     
-    // Determine box width based on whether we show SPACE
-    const boxWidth = isNear && isReady ? 150 : 100;
-    const boxOffset = boxWidth / 2;
-    ctx.roundRect(drawX - boxOffset, promptY - 15, boxWidth, 30, 15);
-    ctx.fill();
-    
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
+    ctx.font = 'bold 12px Outfit, sans-serif';
+    let textStr = '';
     if (isReady) {
-      if (isNear) {
-        ctx.fillStyle = '#f39c12';
-        ctx.font = 'bold 12px Outfit, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('[SPACE]', drawX - 35, promptY + 1);
-        
-        ctx.fillStyle = '#ecf0f1';
-        ctx.font = '12px Outfit, sans-serif';
-        ctx.fillText(`Forge (${this.maxCrafts - this.craftCount}/${this.maxCrafts})`, drawX + 25, promptY + 1);
-      } else {
-        ctx.fillStyle = '#ecf0f1';
-        ctx.font = '12px Outfit, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`Forge (${this.maxCrafts - this.craftCount}/${this.maxCrafts})`, drawX, promptY + 1);
-      }
+      textStr = `Forge (${this.maxCrafts - this.craftCount}/${this.maxCrafts})`;
     } else {
       const timeSinceCooldown = Date.now() - this.lastCooldownStart;
       const secondsLeft = Math.ceil((this.cooldown - timeSinceCooldown) / 1000);
+      textStr = `Wait ${secondsLeft}s`;
+    }
+    
+    const spaceStr = (isNear && isReady) ? '[SPACE]  ' : '';
+    const fullText = spaceStr + textStr;
+    
+    const textWidth = ctx.measureText(fullText).width;
+    const boxWidth = textWidth + 30;
+    const boxOffset = boxWidth / 2;
+
+    const gradient = ctx.createLinearGradient(drawX - boxOffset, promptY - 15, drawX + boxOffset, promptY + 15);
+    gradient.addColorStop(0, 'rgba(20, 25, 30, 0.95)');
+    gradient.addColorStop(1, 'rgba(40, 50, 60, 0.85)');
+    ctx.fillStyle = gradient;
+
+    ctx.beginPath();
+    ctx.roundRect(drawX - boxOffset, promptY - 15, boxWidth, 30, 15);
+    ctx.fill();
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (isReady) {
+      if (isNear) {
+        // Measure where to put SPACE and text so they center together
+        const spaceWidth = ctx.measureText('[SPACE]').width;
+        const mainWidth = ctx.measureText(textStr).width;
+        const totalW = spaceWidth + 8 + mainWidth;
+        const startX = drawX - totalW / 2;
+
+        ctx.fillStyle = '#f39c12';
+        ctx.textAlign = 'left';
+        ctx.fillText('[SPACE]', startX, promptY + 1);
+        
+        ctx.fillStyle = '#ecf0f1';
+        ctx.fillText(textStr, startX + spaceWidth + 8, promptY + 1);
+      } else {
+        ctx.fillStyle = '#ecf0f1';
+        ctx.fillText(textStr, drawX, promptY + 1);
+      }
+    } else {
       ctx.fillStyle = '#e74c3c'; // Red
-      ctx.font = 'bold 12px Outfit, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`Wait ${secondsLeft}s`, drawX, promptY + 1);
+      ctx.fillText(textStr, drawX, promptY + 1);
     }
     ctx.restore();
   }
