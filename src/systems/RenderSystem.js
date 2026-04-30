@@ -75,51 +75,12 @@ export class RenderSystem {
     damageEffects.forEach(eff => {
       if (eff instanceof DamageEffect) eff.draw(this.ctx, camera);
     });
-
-    this.drawInteractionPrompts(player, entities);
-
     this.ctx.restore();
 
     if (gameState === 'GAMEOVER') {
       this.drawGameOver(upperBase.health <= 0 ? 'DEFEAT' : 'VICTORY');
     }
   }
-
-  drawInteractionPrompts(player, entities) {
-    const { mine, forest, smithy, workshop, armory, mangonels } = entities;
-    this.ctx.fillStyle = '#fff';
-    this.ctx.font = '16px monospace';
-    this.ctx.textAlign = 'center';
-
-    if (mine.isPlayerNear(player)) {
-      if (player.inventory.length < player.maxInventory) this.ctx.fillText('Press SPACE to mine iron', mine.x, mine.y + mine.height / 2 + 20);
-      else this.ctx.fillText('Inventory Full!', mine.x, mine.y + mine.height / 2 + 20);
-    } else if (forest.isPlayerNear(player)) {
-      if (player.inventory.length < player.maxInventory) this.ctx.fillText('Press SPACE to gather wood', forest.x, forest.y + forest.height / 2 + 20);
-      else this.ctx.fillText('Inventory Full!', forest.x, forest.y + forest.height / 2 + 20);
-    } else if (smithy.isPlayerNear(player)) {
-      const hasIron = player.inventory.includes('iron');
-      const hasWood = player.inventory.includes('wood');
-      if (hasIron) this.ctx.fillText('Press SPACE to forge SWORD (1 Iron)', smithy.x, smithy.y + smithy.height / 2 + 20);
-      else if (hasWood) this.ctx.fillText('Press SPACE to forge BOW (1 Wood)', smithy.x, smithy.y + smithy.height / 2 + 20);
-      else this.ctx.fillText('Need Iron or Wood!', smithy.x, smithy.y + smithy.height / 2 + 20);
-    } else if (workshop.isPlayerNear(player)) {
-      const woodCount = player.inventory.filter(i => i === 'wood').length;
-      const ironCount = player.inventory.filter(i => i === 'iron').length;
-      if (mangonels.length > 0) this.ctx.fillText('Already have a Mangonel!', workshop.x, workshop.y + workshop.height / 2 + 20);
-      else if (woodCount >= 2 && ironCount >= 1) this.ctx.fillText('Press SPACE to build MANGONEL (2W + 1I)', workshop.x, workshop.y + workshop.height / 2 + 20);
-      else this.ctx.fillText('Need 2 Wood and 1 Iron!', workshop.x, workshop.y + workshop.height / 2 + 20);
-    } else if (armory.isPlayerNear(player)) {
-      const hasSword = player.inventory.includes('sword');
-      const hasBow = player.inventory.includes('bow');
-      const followingMangonel = mangonels.find(m => m.state === 'FOLLOWING');
-      if (followingMangonel) this.ctx.fillText('Press SPACE to deploy MANGONEL to battlefield', armory.x, armory.y + armory.height / 2 + 20);
-      else if (hasSword) this.ctx.fillText('Press SPACE to deliver sword', armory.x, armory.y + armory.height / 2 + 20);
-      else if (hasBow) this.ctx.fillText('Press SPACE to deliver bow', armory.x, armory.y + armory.height / 2 + 20);
-      else this.ctx.fillText('Need Sword, Bow or Follower Mangonel!', armory.x, armory.y + armory.height / 2 + 20);
-    }
-  }
-
   drawGameOver(type) {
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     this.ctx.fillRect(0, 0, this.width, this.height);

@@ -34,6 +34,14 @@ export class Market {
         renderSize,
         renderSize
       );
+      
+      // Building Name
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.fillStyle = '#f1c40f';
+      ctx.font = 'bold 14px Outfit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Market', drawX, drawY - this.height / 2 - 30);
       ctx.restore();
     }
   }
@@ -43,44 +51,34 @@ export class Market {
       const drawX = this.x - camera.x;
       const drawY = this.y - camera.y;
       
-      ctx.fillStyle = '#fff';
-      ctx.font = '14px Outfit';
-      ctx.textAlign = 'center';
-      ctx.fillText('Press [SPACE] to interact', drawX, drawY + this.height / 2 + 30);
+      // Modern Interaction Prompt
+      const promptY = drawY - this.height / 2 - 20;
       
-      this.drawSpeechBubble(ctx, "I'm a traveling merchant! I have great wares.", drawX, drawY - this.height / 2 - 45);
+      ctx.save();
+      // Background pill
+      ctx.fillStyle = 'rgba(20, 25, 30, 0.85)';
+      ctx.beginPath();
+      ctx.roundRect(drawX - 55, promptY - 15, 110, 30, 15);
+      ctx.fill();
+      
+      // Border
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Key icon (Space)
+      ctx.fillStyle = '#f39c12';
+      ctx.font = 'bold 12px Outfit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('[SPACE]', drawX - 20, promptY + 1);
+      
+      // Text
+      ctx.fillStyle = '#ecf0f1';
+      ctx.font = '12px Outfit, sans-serif';
+      ctx.fillText('Interact', drawX + 25, promptY + 1);
+      ctx.restore();
     }
-  }
-
-  drawSpeechBubble(ctx, text, x, y) {
-    ctx.font = '12px Outfit';
-    const textWidth = ctx.measureText(text).width;
-    const padding = 12;
-    const bubbleWidth = textWidth + padding * 2;
-    const bubbleHeight = 35;
-
-    // Bubble
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    if (ctx.roundRect) {
-        ctx.roundRect(x - bubbleWidth / 2, y - bubbleHeight, bubbleWidth, bubbleHeight, 10);
-    } else {
-        ctx.rect(x - bubbleWidth / 2, y - bubbleHeight, bubbleWidth, bubbleHeight);
-    }
-    ctx.fill();
-    
-    // Pointer
-    ctx.beginPath();
-    ctx.moveTo(x - 6, y - 2);
-    ctx.lineTo(x + 6, y - 2);
-    ctx.lineTo(x, y + 8);
-    ctx.fill();
-
-    // Text
-    ctx.fillStyle = '#2c3e50';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, x, y - bubbleHeight / 2);
   }
 
   isPlayerNear(player) {

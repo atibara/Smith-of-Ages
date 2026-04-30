@@ -34,6 +34,14 @@ export class Armory {
         renderSize,
         renderSize
       );
+      
+      // Building Name
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.fillStyle = '#f1c40f';
+      ctx.font = 'bold 14px Outfit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Armory', drawX, drawY - this.height / 2 - 30);
       ctx.restore();
     }
   }
@@ -42,51 +50,35 @@ export class Armory {
     if (player && this.isPlayerNear(player)) {
       const drawX = this.x - camera.x;
       const drawY = this.y - camera.y;
-      const npcX = drawX + 35;
-      const npcY = drawY + this.height / 2 + 10;
-      this.drawSpeechBubble(ctx, "Armory Quartermaster! Deliver gear to arm our troops.", npcX, npcY - 25);
+      
+      // Modern Interaction Prompt
+      const promptY = drawY - this.height / 2 - 20;
+      
+      ctx.save();
+      // Background pill
+      ctx.fillStyle = 'rgba(20, 25, 30, 0.85)';
+      ctx.beginPath();
+      ctx.roundRect(drawX - 55, promptY - 15, 110, 30, 15);
+      ctx.fill();
+      
+      // Border
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Key icon (Space)
+      ctx.fillStyle = '#f39c12';
+      ctx.font = 'bold 12px Outfit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('[SPACE]', drawX - 20, promptY + 1);
+      
+      // Text
+      ctx.fillStyle = '#ecf0f1';
+      ctx.font = '12px Outfit, sans-serif';
+      ctx.fillText('Interact', drawX + 25, promptY + 1);
+      ctx.restore();
     }
-  }
-
-  drawSpeechBubble(ctx, text, x, y) {
-    ctx.font = '12px monospace';
-    const textWidth = ctx.measureText(text).width;
-    const padding = 10;
-    const bubbleWidth = textWidth + padding * 2;
-    const bubbleHeight = 30;
-
-    const screenW = window.innerWidth;
-    let bubbleX = x;
-    if (bubbleX - bubbleWidth / 2 < 10) bubbleX = bubbleWidth / 2 + 10;
-    if (bubbleX + bubbleWidth / 2 > screenW - 10) bubbleX = screenW - bubbleWidth / 2 - 10;
-
-    // Bubble
-    ctx.fillStyle = '#ecf0f1';
-    ctx.beginPath();
-    ctx.roundRect(bubbleX - bubbleWidth / 2, y - bubbleHeight, bubbleWidth, bubbleHeight, 8);
-    ctx.fill();
-    ctx.strokeStyle = '#bdc3c7';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    // Pointer
-    ctx.beginPath();
-    const mapVal = Math.max(bubbleX - bubbleWidth/2 + 15, Math.min(x, bubbleX + bubbleWidth/2 - 15));
-    ctx.moveTo(mapVal - 6, y - 2);
-    ctx.lineTo(mapVal + 6, y - 2);
-    ctx.lineTo(x, y + 10);
-    ctx.fill();
-    ctx.stroke();
-
-    // Fix pointer overlap using a rectangle patch
-    ctx.fillStyle = '#ecf0f1';
-    ctx.fillRect(mapVal - 5, y - 4, 10, 4);
-
-    // Text
-    ctx.fillStyle = '#2c3e50';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, bubbleX, y - bubbleHeight / 2);
   }
 
   isPlayerNear(player) {
