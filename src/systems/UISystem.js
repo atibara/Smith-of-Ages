@@ -51,4 +51,19 @@ export class UISystem {
     const menu = document.getElementById(menuId);
     if (menu) menu.classList.add('hidden');
   }
+
+  showGameOver(isVictory) {
+    const menu = document.getElementById('game-over');
+    const title = document.getElementById('game-over-title');
+    const msg = document.getElementById('game-over-msg');
+
+    if (menu) {
+      menu.classList.remove('hidden');
+      menu.classList.remove('victory', 'defeat');
+      menu.classList.add(isVictory ? 'victory' : 'defeat');
+      
+      if (title) title.innerText = isVictory ? 'VICTORY' : 'DEFEAT';
+      if (msg) msg.innerText = isVictory ? 'The enemy fortress has been destroyed!' : 'Your fortress has fallen to the enemy.';
+    }
+  }
 }

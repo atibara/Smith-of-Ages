@@ -284,6 +284,24 @@ if (backSettingsBtn) {
   });
 }
 
+// Game Over UI listeners
+const restartBtn = document.getElementById('btn-restart');
+if (restartBtn) {
+  restartBtn.addEventListener('click', () => {
+    restartGame();
+  });
+}
+
+const exitGameBtn = document.getElementById('btn-exit-game');
+if (exitGameBtn) {
+  exitGameBtn.addEventListener('click', () => {
+    uiSystem.hideMenu('game-over');
+    uiSystem.showMenu('main-menu');
+    gameState = 'MENU';
+    inputSystem.setGameState(gameState);
+  });
+}
+
 function update() {
   if (gameState !== 'PLAYING' && gameState !== 'SHOPPING') return;
 
@@ -305,6 +323,17 @@ function update() {
   }
 
   uiSystem.updateHUD(player);
+
+  // --- GAME OVER CHECK ---
+  if (entities.upperBase.health <= 0) {
+    gameState = 'GAMEOVER';
+    inputSystem.setGameState(gameState);
+    uiSystem.showGameOver(false);
+  } else if (entities.enemyBase.health <= 0) {
+    gameState = 'GAMEOVER';
+    inputSystem.setGameState(gameState);
+    uiSystem.showGameOver(true);
+  }
 }
 
 function gameLoop() {
@@ -353,6 +382,7 @@ function restartGame() {
   
   gameState = 'PLAYING';
   inputSystem.setGameState(gameState);
+  uiSystem.hideMenu('game-over');
   if (!loopRunning) gameLoop();
 }
 

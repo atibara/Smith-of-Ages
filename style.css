@@ -460,3 +460,25 @@ select option { background: #2c3e50; }
     cursor: not-allowed;
     transform: none;
 }
+
+/* Game Over Styles */
+#game-over .menu-content {
+    border-top: 5px solid #e74c3c;
+}
+
+#game-over.victory .menu-content {
+    border-top: 5px solid #f1c40f;
+    box-shadow: 0 0 50px rgba(241, 196, 15, 0.2);
+}
+
+#game-over.victory h2 {
+    background: linear-gradient(135deg, #f1c40f, #f39c12);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+#game-over.defeat h2 {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
