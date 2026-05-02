@@ -64,75 +64,94 @@ export class Smithy {
 
   drawUI(ctx, camera, player, entities, economySystem) {
     const isNear = player && this.isPlayerNear(player);
+    
+    // Only show popup when player is nearby
+    if (!isNear) return;
+    
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
     
-    const promptY = drawY - this.height / 2 - 45;
-
     // Check if we recovered from cooldown silently
     if (this.craftCount >= this.maxCrafts && Date.now() - this.lastCooldownStart >= this.cooldown) {
       this.craftCount = 0;
     }
     
     const isReady = this.canCraft();
-
+    const popupY = drawY - this.height / 2 - 160;
+    const popupWidth = 280;
+    const popupHeight = isReady ? 155 : 130;
+    const popupX = drawX - popupWidth / 2;
+    
     ctx.save();
     
-    ctx.font = 'bold 12px Outfit, sans-serif';
-    let textStr = '';
-    if (isReady) {
-      textStr = `Forge (${this.maxCrafts - this.craftCount}/${this.maxCrafts})`;
-    } else {
-      const timeSinceCooldown = Date.now() - this.lastCooldownStart;
-      const secondsLeft = Math.ceil((this.cooldown - timeSinceCooldown) / 1000);
-      textStr = `Wait ${secondsLeft}s`;
-    }
-    
-    const spaceStr = (isNear && isReady) ? '[SPACE]  ' : '';
-    const fullText = spaceStr + textStr;
-    
-    const textWidth = ctx.measureText(fullText).width;
-    const boxWidth = textWidth + 30;
-    const boxOffset = boxWidth / 2;
-
-    const gradient = ctx.createLinearGradient(drawX - boxOffset, promptY - 15, drawX + boxOffset, promptY + 15);
-    gradient.addColorStop(0, 'rgba(20, 25, 30, 0.95)');
-    gradient.addColorStop(1, 'rgba(40, 50, 60, 0.85)');
+    // Background with gradient
+    const gradient = ctx.createLinearGradient(popupX, popupY, popupX, popupY + popupHeight);
+    gradient.addColorStop(0, 'rgba(50, 50, 70, 0.95)');
+    gradient.addColorStop(1, 'rgba(30, 30, 45, 0.95)');
     ctx.fillStyle = gradient;
-
+    
     ctx.beginPath();
-    ctx.roundRect(drawX - boxOffset, promptY - 15, boxWidth, 30, 15);
+    ctx.roundRect(popupX, popupY, popupWidth, popupHeight, 12);
     ctx.fill();
     
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 1;
+    // Border color changes based on ready state
+    ctx.strokeStyle = isReady ? 'rgba(244, 208, 63, 0.6)' : 'rgba(231, 76, 60, 0.6)';
+    ctx.lineWidth = 2;
     ctx.stroke();
-
+    
+    // Title
+    ctx.font = 'bold 14px Outfit, sans-serif';
+    ctx.fillStyle = isReady ? '#f4d03f' : '#e74c3c';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
+    ctx.textBaseline = 'top';
+    ctx.fillText('🔨 Forge', drawX, popupY + 12);
+    
     if (isReady) {
-      if (isNear) {
-        // Measure where to put SPACE and text so they center together
-        const spaceWidth = ctx.measureText('[SPACE]').width;
-        const mainWidth = ctx.measureText(textStr).width;
-        const totalW = spaceWidth + 8 + mainWidth;
-        const startX = drawX - totalW / 2;
-
-        ctx.fillStyle = '#f39c12';
-        ctx.textAlign = 'left';
-        ctx.fillText('[SPACE]', startX, promptY + 1);
-        
-        ctx.fillStyle = '#ecf0f1';
-        ctx.fillText(textStr, startX + spaceWidth + 8, promptY + 1);
-      } else {
-        ctx.fillStyle = '#ecf0f1';
-        ctx.fillText(textStr, drawX, promptY + 1);
-      }
+      // Show crafting options
+      ctx.font = '11px Outfit, sans-serif';
+      ctx.fillStyle = '#ecf0f1';
+      
+      const lineSpacing = 18;
+      let currentY = popupY + 38;
+      
+      // Sword crafting
+      ctx.textAlign = 'left';
+      ctx.fillText('⚔️ Sword:', popupX + 20, currentY);
+      ctx.font = '10px Outfit, sans-serif';
+      ctx.fillStyle = '#bdc3c7';
+      ctx.fillText('⛓️ 1x Iron', popupX + 35, currentY + 12);
+      
+      // Bow crafting
+      ctx.font = '11px Outfit, sans-serif';
+      ctx.fillStyle = '#ecf0f1';
+      currentY += lineSpacing + 8;
+      ctx.fillText('🏹 Bow:', popupX + 20, currentY);
+      ctx.font = '10px Outfit, sans-serif';
+      ctx.fillStyle = '#bdc3c7';
+      ctx.fillText('🪵 1x Wood', popupX + 35, currentY + 12);
+      
+      // Craft counter
+      ctx.font = '9px Outfit, sans-serif';
+      ctx.fillStyle = '#95a5a6';
+      currentY += lineSpacing + 5;
+      ctx.textAlign = 'center';
+      ctx.fillText(`Ready (${this.maxCrafts - this.craftCount}/${this.maxCrafts})`, drawX, currentY);
     } else {
-      ctx.fillStyle = '#e74c3c'; // Red
-      ctx.fillText(textStr, drawX, promptY + 1);
+      // Show cooldown timer
+      const timeSinceCooldown = Date.now() - this.lastCooldownStart;
+      const secondsLeft = Math.ceil((this.cooldown - timeSinceCooldown) / 1000);
+      
+      ctx.font = '11px Outfit, sans-serif';
+      ctx.fillStyle = '#bdc3c7';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`Cooling down...`, drawX, popupY + 50);
+      
+      ctx.font = 'bold 13px Outfit, sans-serif';
+      ctx.fillStyle = '#e74c3c';
+      ctx.fillText(`${secondsLeft}s`, drawX, popupY + 75);
     }
+    
     ctx.restore();
   }
 

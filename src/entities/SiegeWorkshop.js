@@ -41,54 +41,69 @@ export class SiegeWorkshop {
 
   drawUI(ctx, camera, player) {
     const isNear = player && this.isPlayerNear(player);
+    
+    // Only show popup when player is nearby
+    if (!isNear) return;
+    
     const drawX = this.x - camera.x;
     const drawY = this.y - camera.y;
     
-    const promptY = drawY - this.height / 2 - 45;
+    const popupY = drawY - this.height / 2 - 120;
+    const popupWidth = 280;
+    const popupHeight = 140;
+    const popupX = drawX - popupWidth / 2;
     
     ctx.save();
-    ctx.font = 'bold 12px Outfit, sans-serif';
     
-    const textStr = 'Siege Workshop';
-    const spaceStr = isNear ? '[SPACE]  ' : '';
-    const fullText = spaceStr + textStr;
-    
-    const textWidth = ctx.measureText(fullText).width;
-    const boxWidth = textWidth + 30;
-    const boxOffset = boxWidth / 2;
-
-    const gradient = ctx.createLinearGradient(drawX - boxOffset, promptY - 15, drawX + boxOffset, promptY + 15);
-    gradient.addColorStop(0, 'rgba(20, 25, 30, 0.95)');
-    gradient.addColorStop(1, 'rgba(40, 50, 60, 0.85)');
+    // Background with gradient
+    const gradient = ctx.createLinearGradient(popupX, popupY, popupX, popupY + popupHeight);
+    gradient.addColorStop(0, 'rgba(50, 50, 70, 0.95)');
+    gradient.addColorStop(1, 'rgba(30, 30, 45, 0.95)');
     ctx.fillStyle = gradient;
-
+    
     ctx.beginPath();
-    ctx.roundRect(drawX - boxOffset, promptY - 15, boxWidth, 30, 15);
+    ctx.roundRect(popupX, popupY, popupWidth, popupHeight, 12);
     ctx.fill();
     
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 1;
+    // Border
+    ctx.strokeStyle = 'rgba(243, 156, 18, 0.6)';
+    ctx.lineWidth = 2;
     ctx.stroke();
-
+    
+    // Title
+    ctx.font = 'bold 14px Outfit, sans-serif';
+    ctx.fillStyle = '#f39c12';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    if (isNear) {
-      const spaceWidth = ctx.measureText('[SPACE]').width;
-      const mainWidth = ctx.measureText(textStr).width;
-      const totalW = spaceWidth + 8 + mainWidth;
-      const startX = drawX - totalW / 2;
-
-      ctx.fillStyle = '#f39c12';
-      ctx.textAlign = 'left';
-      ctx.fillText('[SPACE]', startX, promptY + 1);
-      
-      ctx.fillStyle = '#ecf0f1';
-      ctx.fillText(textStr, startX + spaceWidth + 8, promptY + 1);
-    } else {
-      ctx.fillStyle = '#ecf0f1';
-      ctx.fillText(textStr, drawX, promptY + 1);
-    }
+    ctx.textBaseline = 'top';
+    ctx.fillText('🎯 Catapult Crafting', drawX, popupY + 12);
+    
+    // Requirements text
+    ctx.font = '11px Outfit, sans-serif';
+    ctx.fillStyle = '#ecf0f1';
+    
+    const lineSpacing = 18;
+    let currentY = popupY + 38;
+    
+    // Requirement 1: Wood
+    ctx.textAlign = 'left';
+    ctx.fillText('🪵 x2 Wood', popupX + 20, currentY);
+    
+    // Requirement 2: Iron
+    currentY += lineSpacing;
+    ctx.fillText('⛓️ x1 Iron', popupX + 20, currentY);
+    
+    // Plus symbol
+    ctx.font = 'bold 12px Outfit, sans-serif';
+    ctx.fillStyle = '#27ae60';
+    ctx.textAlign = 'center';
+    ctx.fillText('+', popupX + 240, popupY + 48);
+    
+    // Info text
+    ctx.font = '9px Outfit, sans-serif';
+    ctx.fillStyle = '#95a5a6';
+    currentY += lineSpacing + 5;
+    ctx.textAlign = 'center';
+    ctx.fillText('Gather resources to craft', drawX, currentY);
     
     ctx.restore();
   }

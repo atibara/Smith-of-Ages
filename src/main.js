@@ -309,7 +309,7 @@ function update() {
   player.update({ minX: 0, maxX: width, minY: UPPER_WORLD_HEIGHT, maxY: height - HUD_OFFSET - 20 }, obstacles);
   
   const isTowing = entities.mangonels.some(m => m.state === 'FOLLOWING');
-  player.speedBase = player.speedBase || 2.5;
+  player.speedBase = player.speedBase || 1.5;
   player.speed = isTowing ? player.speedBase * 0.48 : player.speedBase;
 
   if (gameState !== 'PLAYING') return;
@@ -375,8 +375,8 @@ function restartGame() {
   player.targetX = player.x;
   player.targetY = player.y;
   player.inventory = [];
-  player.speedBase = 3.0;
-  player.speed = 3.0;
+  player.speedBase = 1.5;
+  player.speed = 1.5;
   player.isMoving = false;
   player.path = [];
   
